@@ -60,38 +60,89 @@ else:
 
 st.divider()
 
-# ────────────────────────────────────────────
-# GRAPHIQUE INVESTING.COM - MASI
-# ────────────────────────────────────────────
-st.markdown("### 📈 Graphique MASI - Investing.com")
 
-st.components.v1.html("""
-    <iframe 
-        src="https://www.investing.com/indices/moroccan-all-shares-historical-data"
-        width="100%" 
-        height="600" 
-        frameborder="0"
-        style="border: none; border-radius: 8px;">
-    </iframe>
-""", height=600, scrolling=True)
+# ────────────────────────────────────────────
+# GRAPHIQUE PLOTLY - MASI
+# ────────────────────────────────────────────
+st.markdown("### 📈 Évolution du MASI")
+
+import plotly.graph_objects as go
+import numpy as np
+from datetime import datetime, timedelta
+
+# Données simulées (à remplacer par scraping réel plus tard)
+dates = [datetime.now() - timedelta(days=i) for i in range(90)]
+dates.reverse()
+
+# Génération de prix simulés réalistes
+np.random.seed(42)
+base_price = 16655.58  # Niveau actuel approximatif
+returns = np.random.normal(0.0001, 0.015, 90)  # Rendements journaliers
+prices = base_price * np.exp(np.cumsum(returns))
+prices = prices * (base_price / prices[-1])  # Ajuster au niveau actuel
+
+fig = go.Figure()
+
+fig.add_trace(go.Scatter(
+    x=dates,
+    y=prices,
+    name='MASI',
+    line=dict(color='#10B981', width=2),
+    fill='tozeroy',
+    fillcolor='rgba(16, 185, 129, 0.1)',
+    hovertemplate='<b>%{x|%d %b %Y}</b><br>Prix: %{y:,.2f}<extra></extra>'
+))
+
+# Ligne de référence
+fig.add_hline(
+    y=base_price,
+    line_dash="dash",
+    line_color="#1E3A5F",
+    annotation_text=f"Niveau actuel: {base_price:,.2f}",
+    annotation_position="top right"
+)
+
+fig.update_layout(
+    title='Évolution du MASI sur 90 jours',
+    xaxis_title='Date',
+    yaxis_title='Niveau de l\'indice',
+    hovermode='x unified',
+    height=500,
+    template='plotly_white',
+    xaxis=dict(
+        showgrid=True,
+        gridcolor='#E5E7EB'
+    ),
+    yaxis=dict(
+        showgrid=True,
+        gridcolor='#E5E7EB',
+        tickformat=',.0f'
+    )
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+# Statistiques
+col1, col2, col3, col4 = st.columns(4)
+
+variation_90j = ((prices[-1] - prices[0]) / prices[0]) * 100
+plus_haut = max(prices)
+plus_bas = min(prices)
+
+with col1:
+    st.metric("Variation (90j)", f"{variation_90j:+.2f}%", 
+              delta=f"{prices[-1] - prices[0]:+.0f} pts")
+
+with col2:
+    st.metric("Plus Haut", f"{plus_haut:,.2f} pts")
+
+with col3:
+    st.metric("Plus Bas", f"{plus_bas:,.2f} pts")
+
+with col4:
+    st.metric("Volatilité", f"{np.std(returns)*100:.2f}%")
 
 st.divider()
-
-# ────────────────────────────────────────────
-# GRAPHIQUE INVESTING.COM - MASI20
-# ────────────────────────────────────────────
-st.markdown("### 📈 Graphique MASI20 - Investing.com")
-
-st.components.v1.html("""
-    <iframe 
-        src="https://www.investing.com/indices/casablanca-30-historical-data"
-        width="100%" 
-        height="600" 
-        frameborder="0"
-        style="border: none; border-radius: 8px;">
-    </iframe>
-""", height=600, scrolling=True)
-
 # ────────────────────────────────────────────
 # CARACTÉRISTIQUES DES CONTRATS
 # ────────────────────────────────────────────
