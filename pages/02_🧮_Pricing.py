@@ -166,76 +166,18 @@ st.markdown("### 📈 Sensibilités (Grecques)")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown(f"""
-        <div style='padding: 25px; background: white; border-radius: 12px; 
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);'>
-            <h4 style='margin-top: 0; color: #1E3A5F; border-bottom: 2px solid #1E3A5F; 
-                       padding-bottom: 10px;'>Sensibilités Absolues</h4>
-            
-            <div style='margin: 15px 0;'>
-                <p style='margin: 10px 0; display: flex; justify-content: space-between;'>
-                    <strong>dF/dr</strong>
-                    <span style='color: #10B981; font-weight: 600;'>
-                        {sensibilites['df_dr']:,.2f} pts/+1% taux
-                    </span>
-                </p>
-                <p style='margin: 10px 0; display: flex; justify-content: space-between;'>
-                    <strong>dF/dq</strong>
-                    <span style='color: #EF4444; font-weight: 600;'>
-                        {sensibilites['df_dq']:,.2f} pts/+1% div.
-                    </span>
-                </p>
-                <p style='margin: 10px 0; display: flex; justify-content: space-between;'>
-                    <strong>dF/dS (Delta)</strong>
-                    <span style='color: #3B82F6; font-weight: 600;'>
-                        {sensibilites['df_dS']:.4f}
-                    </span>
-                </p>
-                <p style='margin: 10px 0; display: flex; justify-content: space-between;'>
-                    <strong>dF/dT (Theta)</strong>
-                    <span style='color: #F59E0B; font-weight: 600;'>
-                        {sensibilites['df_dT']:,.2f} pts/an
-                    </span>
-                </p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("#### Sensibilités Absolues")
+    st.metric("dF/dr (Taux)", f"{sensibilites['df_dr']:,.2f} pts/+1% taux")
+    st.metric("dF/dq (Dividendes)", f"{sensibilites['df_dq']:,.2f} pts/+1% div.")
+    st.metric("dF/dS (Delta)", f"{sensibilites['df_dS']:.4f}")
+    st.metric("dF/dT (Theta)", f"{sensibilites['df_dT']:,.2f} pts/an")
 
 with col2:
-    st.markdown(f"""
-        <div style='padding: 25px; background: white; border-radius: 12px; 
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);'>
-            <h4 style='margin-top: 0; color: #1E3A5F; border-bottom: 2px solid #1E3A5F; 
-                       padding-bottom: 10px;'>Impact Relatif</h4>
-            
-            <div style='margin: 15px 0;'>
-                <p style='margin: 10px 0; display: flex; justify-content: space-between;'>
-                    <strong>+1% sur r</strong>
-                    <span style='color: #10B981; font-weight: 60;'>
-                        {sensibilites['df_dr']/F0*100:+.2f}%
-                    </span>
-                </p>
-                <p style='margin: 10px 0; display: flex; justify-content: space-between;'>
-                    <strong>+1% sur q</strong>
-                    <span style='color: #EF4444; font-weight: 600;'>
-                        {sensibilites['df_dq']/F0*100:+.2f}%
-                    </span>
-                </p>
-                <p style='margin: 10px 0; display: flex; justify-content: space-between;'>
-                    <strong>+1 point sur S</strong>
-                    <span style='color: #3B82F6; font-weight: 600;'>
-                        {1/F0*100:+.4f}%
-                    </span>
-                </p>
-                <p style='margin: 10px 0; display: flex; justify-content: space-between;'>
-                    <strong>+1 mois sur T</strong>
-                    <span style='color: #F59E0B; font-weight: 600;'>
-                        {sensibilites['df_dT']/F0*(1/12)*100:+.2f}%
-                    </span>
-                </p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("#### Impact Relatif")
+    st.metric("+1% sur r", f"{sensibilites['df_dr']/F0*100:+.2f}%")
+    st.metric("+1% sur q", f"{sensibilites['df_dq']/F0*100:+.2f}%")
+    st.metric("+1 point sur S", f"{1/F0*100:+.4f}%")
+    st.metric("+1 mois sur T", f"{sensibilites['df_dT']/F0*(1/12)*100:+.2f}%")
 
 # ────────────────────────────────────────────
 # SECTION 5 : TERM STRUCTURE
@@ -246,18 +188,13 @@ st.markdown("### 📊 Structure par Terme des Futures")
 echeances = [30, 60, 90, 120, 180, 252]
 df_term = calcul_term_structure(spot, r, q, echeances)
 
-# Affichage du tableau stylisé
+# Affichage simple du tableau (sans style complexe)
 st.dataframe(
-    df_term.style.format({
-        'F0': '{:,.2f}',
-        'Base_pts': '{:+,.2f}',
-        'Base_pct': '{:+.2f}%'
-    }).background_gradient(
-        subset=['Base_pct'], 
-        cmap='RdYlGn_r',
-        vmin=-2,
-        vmax=2
-    ),
+    df_term.round({
+        'F0': 2,
+        'Base_pts': 2,
+        'Base_pct': 2
+    }),
     use_container_width=True,
     hide_index=True
 )
@@ -292,7 +229,6 @@ fig_term.update_layout(
 )
 
 st.plotly_chart(fig_term, use_container_width=True)
-
 # ────────────────────────────────────────────
 # SECTION 6 : ARBITRAGE
 # ────────────────────────────────────────────
