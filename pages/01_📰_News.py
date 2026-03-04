@@ -61,33 +61,36 @@ else:
 st.divider()
 
 # ────────────────────────────────────────────
-# GRAPHIQUE INVESTING.COM
+# GRAPHIQUE INVESTING.COM - MASI
 # ────────────────────────────────────────────
 st.markdown("### 📈 Graphique MASI - Investing.com")
 
 st.components.v1.html("""
     <iframe 
-        src="https://fr.investing.com/indices/moroccan-all-shares"
+        src="https://www.investing.com/indices/moroccan-all-shares-historical-data"
         width="100%" 
-        height="650" 
+        height="600" 
         frameborder="0"
-        style="border: none;">
+        style="border: none; border-radius: 8px;">
     </iframe>
-""", height=650, scrolling=True)
+""", height=600, scrolling=True)
 
 st.divider()
 
+# ────────────────────────────────────────────
+# GRAPHIQUE INVESTING.COM - MASI20
+# ────────────────────────────────────────────
 st.markdown("### 📈 Graphique MASI20 - Investing.com")
 
 st.components.v1.html("""
     <iframe 
-        src="https://fr.investing.com/indices/casablanca-30"
+        src="https://www.investing.com/indices/casablanca-30-historical-data"
         width="100%" 
-        height="650" 
+        height="600" 
         frameborder="0"
-        style="border: none;">
+        style="border: none; border-radius: 8px;">
     </iframe>
-""", height=650, scrolling=True)
+""", height=600, scrolling=True)
 
 # ────────────────────────────────────────────
 # CARACTÉRISTIQUES DES CONTRATS
