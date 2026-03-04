@@ -1,13 +1,9 @@
-# ============================================
-# FOOTER COMPONENT - MASI Futures Pro
-# ============================================
-
 import streamlit as st
 from datetime import datetime
 import config
 
 def render_footer():
-    """Affiche un footer professionnel et discret"""
+    """Affiche le footer"""
     
     st.divider()
     
