@@ -1,37 +1,22 @@
-# ============================================
-# HEADER COMPONENT - MASI Futures Pro
-# Statut Marché + Date/Heure
-# ============================================
-
 import streamlit as st
 from datetime import datetime
 import config
 
 def render_header(marche_ouvert=False):
-    """
-    Affiche le header avec :
-    - Statut du marché (Ouvert/Fermé)
-    - Date et heure actuelles
-    - Dernière mise à jour des données
-    """
+    """Affiche le header"""
     
-    # Date et heure actuelles
     now = datetime.now()
     date_str = now.strftime("%A %d %B %Y")
     heure_str = now.strftime("%H:%M:%S")
     
-    # Déterminer si le marché est ouvert (simplifié)
-    # En production, vérifier les heures réelles de la Bourse de Casa
-    jour_semaine = now.weekday()  # 0=Lundi, 6=Dimanche
+    jour_semaine = now.weekday()
     heure_actuelle = now.hour
     
-    # Heures de cotation Bourse de Casablanca: 10:00 - 15:30
     marche_ouvert = (
-        jour_semaine < 5 and  # Lundi à Vendredi
-        10 <= heure_actuelle < 15.5  # 10:00 à 15:30
+        jour_semaine < 5 and
+        10 <= heure_actuelle < 15.5
     )
     
-    # Statut visuel
     if marche_ouvert:
         statut_color = config.COLORS['success']
         statut_text = "🟢 Marché Ouvert"
@@ -41,7 +26,6 @@ def render_header(marche_ouvert=False):
         statut_text = "⚪ Marché Fermé"
         statut_msg = "Prochaine ouverture: Lundi 10:00" if jour_semaine >= 5 else f"Demain 10:00"
     
-    # Affichage du header
     st.markdown(f"""
         <div style='
             display: flex;
