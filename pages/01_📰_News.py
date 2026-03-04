@@ -62,30 +62,42 @@ st.divider()
 
 
 # ────────────────────────────────────────────
-# GRAPHIQUE PLOTLY - MASI
+# GRAPHIQUES PLOTLY - MASI & MASI20
 # ────────────────────────────────────────────
-st.markdown("### 📈 Évolution du MASI")
+st.markdown("### 📈 Évolution des Indices")
 
 import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime, timedelta
 
-# Données simulées (à remplacer par scraping réel plus tard)
-dates = [datetime.now() - timedelta(days=i) for i in range(90)]
-dates.reverse()
-
-# Génération de prix simulés réalistes
+# Données simulées MASI
+dates_masi = [datetime.now() - timedelta(days=i) for i in range(90)]
+dates_masi.reverse()
 np.random.seed(42)
-base_price = 16655.58  # Niveau actuel approximatif
-returns = np.random.normal(0.0001, 0.015, 90)  # Rendements journaliers
-prices = base_price * np.exp(np.cumsum(returns))
-prices = prices * (base_price / prices[-1])  # Ajuster au niveau actuel
+base_masi = 16655.58
+returns_masi = np.random.normal(0.0001, 0.015, 90)
+prices_masi = base_masi * np.exp(np.cumsum(returns_masi))
+prices_masi = prices_masi * (base_masi / prices_masi[-1])
 
-fig = go.Figure()
+# Données simulées MASI20
+dates_masi20 = [datetime.now() - timedelta(days=i) for i in range(90)]
+dates_masi20.reverse()
+np.random.seed(43)
+base_masi20 = 1876.54
+returns_masi20 = np.random.normal(0.0001, 0.018, 90)
+prices_masi20 = base_masi20 * np.exp(np.cumsum(returns_masi20))
+prices_masi20 = prices_masi20 * (base_masi20 / prices_masi20[-1])
 
-fig.add_trace(go.Scatter(
-    x=dates,
-    y=prices,
+# ────────────────────────────────────────────
+# GRAPHIQUE MASI
+# ────────────────────────────────────────────
+st.markdown("#### 🇲🇦 MASI - Moroccan All Shares Index")
+
+fig_masi = go.Figure()
+
+fig_masi.add_trace(go.Scatter(
+    x=dates_masi,
+    y=prices_masi,
     name='MASI',
     line=dict(color='#10B981', width=2),
     fill='tozeroy',
@@ -93,56 +105,133 @@ fig.add_trace(go.Scatter(
     hovertemplate='<b>%{x|%d %b %Y}</b><br>Prix: %{y:,.2f}<extra></extra>'
 ))
 
-# Ligne de référence
-fig.add_hline(
-    y=base_price,
+fig_masi.add_hline(
+    y=base_masi,
     line_dash="dash",
     line_color="#1E3A5F",
-    annotation_text=f"Niveau actuel: {base_price:,.2f}",
+    annotation_text=f"Niveau actuel: {base_masi:,.2f}",
     annotation_position="top right"
 )
 
-fig.update_layout(
+fig_masi.update_layout(
     title='Évolution du MASI sur 90 jours',
     xaxis_title='Date',
     yaxis_title='Niveau de l\'indice',
     hovermode='x unified',
-    height=500,
+    height=450,
     template='plotly_white',
-    xaxis=dict(
-        showgrid=True,
-        gridcolor='#E5E7EB'
-    ),
-    yaxis=dict(
-        showgrid=True,
-        gridcolor='#E5E7EB',
-        tickformat=',.0f'
-    )
+    xaxis=dict(showgrid=True, gridcolor='#E5E7EB'),
+    yaxis=dict(showgrid=True, gridcolor='#E5E7EB', tickformat=',.0f')
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig_masi, use_container_width=True)
 
-# Statistiques
+# Stats MASI
 col1, col2, col3, col4 = st.columns(4)
-
-variation_90j = ((prices[-1] - prices[0]) / prices[0]) * 100
-plus_haut = max(prices)
-plus_bas = min(prices)
+variation_masi = ((prices_masi[-1] - prices_masi[0]) / prices_masi[0]) * 100
 
 with col1:
-    st.metric("Variation (90j)", f"{variation_90j:+.2f}%", 
-              delta=f"{prices[-1] - prices[0]:+.0f} pts")
-
+    st.metric("Variation (90j)", f"{variation_masi:+.2f}%", 
+              delta=f"{prices_masi[-1] - prices_masi[0]:+.0f} pts")
 with col2:
-    st.metric("Plus Haut", f"{plus_haut:,.2f} pts")
-
+    st.metric("Plus Haut", f"{max(prices_masi):,.2f} pts")
 with col3:
-    st.metric("Plus Bas", f"{plus_bas:,.2f} pts")
-
+    st.metric("Plus Bas", f"{min(prices_masi):,.2f} pts")
 with col4:
-    st.metric("Volatilité", f"{np.std(returns)*100:.2f}%")
+    st.metric("Volatilité", f"{np.std(returns_masi)*100:.2f}%")
 
 st.divider()
+
+# ────────────────────────────────────────────
+# GRAPHIQUE MASI20
+# ────────────────────────────────────────────
+st.markdown("#### 🇲🇦 MASI20 - Top 20 Capitalisation")
+
+fig_masi20 = go.Figure()
+
+fig_masi20.add_trace(go.Scatter(
+    x=dates_masi20,
+    y=prices_masi20,
+    name='MASI20',
+    line=dict(color=config.COLORS['primary'], width=2),
+    fill='tozeroy',
+    fillcolor='rgba(30, 58, 95, 0.1)',
+    hovertemplate='<b>%{x|%d %b %Y}</b><br>Prix: %{y:,.2f}<extra></extra>'
+))
+
+fig_masi20.add_hline(
+    y=base_masi20,
+    line_dash="dash",
+    line_color="#1E3A5F",
+    annotation_text=f"Niveau actuel: {base_masi20:,.2f}",
+    annotation_position="top right"
+)
+
+fig_masi20.update_layout(
+    title='Évolution du MASI20 sur 90 jours',
+    xaxis_title='Date',
+    yaxis_title='Niveau de l\'indice',
+    hovermode='x unified',
+    height=450,
+    template='plotly_white',
+    xaxis=dict(showgrid=True, gridcolor='#E5E7EB'),
+    yaxis=dict(showgrid=True, gridcolor='#E5E7EB', tickformat=',.0f')
+)
+
+st.plotly_chart(fig_masi20, use_container_width=True)
+
+# Stats MASI20
+col1, col2, col3, col4 = st.columns(4)
+variation_masi20 = ((prices_masi20[-1] - prices_masi20[0]) / prices_masi20[0]) * 100
+
+with col1:
+    st.metric("Variation (90j)", f"{variation_masi20:+.2f}%", 
+              delta=f"{prices_masi20[-1] - prices_masi20[0]:+.0f} pts")
+with col2:
+    st.metric("Plus Haut", f"{max(prices_masi20):,.2f} pts")
+with col3:
+    st.metric("Plus Bas", f"{min(prices_masi20):,.2f} pts")
+with col4:
+    st.metric("Volatilité", f"{np.std(returns_masi20)*100:.2f}%")
+
+st.divider()
+
+# ────────────────────────────────────────────
+# COMPARAISON CÔTE À CÔTE
+# ────────────────────────────────────────────
+st.markdown("### 📊 Comparaison MASI vs MASI20")
+
+# Normaliser pour comparaison
+masi_normalized = [p / prices_masi[0] * 100 for p in prices_masi]
+masi20_normalized = [p / prices_masi20[0] * 100 for p in prices_masi20]
+
+fig_compare = go.Figure()
+
+fig_compare.add_trace(go.Scatter(
+    x=dates_masi,
+    y=masi_normalized,
+    name='MASI',
+    line=dict(color='#10B981', width=2)
+))
+
+fig_compare.add_trace(go.Scatter(
+    x=dates_masi20,
+    y=masi20_normalized,
+    name='MASI20',
+    line=dict(color=config.COLORS['primary'], width=2, dash='dash')
+))
+
+fig_compare.update_layout(
+    title='Performance Relative (Base 100)',
+    xaxis_title='Date',
+    yaxis_title='Performance (%)',
+    hovermode='x unified',
+    height=400,
+    template='plotly_white',
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+)
+
+st.plotly_chart(fig_compare, use_container_width=True)
 # ────────────────────────────────────────────
 # CARACTÉRISTIQUES DES CONTRATS
 # ────────────────────────────────────────────
