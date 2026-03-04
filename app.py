@@ -37,18 +37,10 @@ page = render_sidebar()
 marche_ouvert = render_header()
 
 # ────────────────────────────────────────────
-# ROUTING VERS LES PAGES
+# NOTE : La navigation est gérée automatiquement
+# par Streamlit via le dossier pages/
+# Pas besoin de st.switch_page()
 # ────────────────────────────────────────────
-# Streamlit gère automatiquement le routing via le dossier pages/
-# Ce fichier sert principalement pour la sidebar et le header communs
-
-# Afficher un message si on est sur la page principale
-if page == "🏠 Accueil":
-    st.switch_page("pages/01_🏠_Accueil.py")
-elif page == "🧮 Pricing":
-    st.switch_page("pages/02_🧮_Pricing.py")
-elif page == "📊 Indices":
-    st.switch_page("pages/03_📊_Indices.py")
 
 # ────────────────────────────────────────────
 # FOOTER
