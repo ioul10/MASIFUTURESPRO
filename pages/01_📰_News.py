@@ -61,78 +61,33 @@ else:
 st.divider()
 
 # ────────────────────────────────────────────
-# GRAPHIQUE TRADINGVIEW - MASI
+# GRAPHIQUE INVESTING.COM
 # ────────────────────────────────────────────
-st.markdown("### 📈 Graphique MASI - TradingView")
+st.markdown("### 📈 Graphique MASI - Investing.com")
 
 st.components.v1.html("""
-    <!-- TradingView Widget BEGIN -->
-    <div class="tradingview-widget-container" style="height:600px;">
-        <div id="tradingview_casablanca"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/externalui.js"></script>
-        <script type="text/javascript">
-        new Tradingview.widget({
-            "width": "100%",
-            "height": 600,
-            "symbol": "CASABLANCA:MASI",
-            "interval": "D",
-            "timezone": "Africa/Casablanca",
-            "theme": "light",
-            "style": "1",
-            "locale": "fr",
-            "toolbar_bg": "#f1f3f6",
-            "enable_publishing": false,
-            "withdateranges": true,
-            "hide_side_toolbar": false,
-            "allow_symbol_change": true,
-            "watchlist": ["CASABLANCA:MASI", "CASABLANCA:MASI20"],
-            "details": true,
-            "hotlist": true,
-            "calendar": true,
-            "container_id": "tradingview_casablanca"
-        });
-        </script>
-    </div>
-    <!-- TradingView Widget END -->
-""", height=600)
+    <iframe 
+        src="https://fr.investing.com/indices/moroccan-all-shares"
+        width="100%" 
+        height="650" 
+        frameborder="0"
+        style="border: none;">
+    </iframe>
+""", height=650, scrolling=True)
 
 st.divider()
 
-# ────────────────────────────────────────────
-# GRAPHIQUE TRADINGVIEW - MASI20 (Optionnel)
-# ────────────────────────────────────────────
-st.markdown("### 📈 Graphique MASI20 - TradingView")
+st.markdown("### 📈 Graphique MASI20 - Investing.com")
 
 st.components.v1.html("""
-    <!-- TradingView Widget BEGIN -->
-    <div class="tradingview-widget-container" style="height:600px;">
-        <div id="tradingview_casablanca_masi20"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/externalui.js"></script>
-        <script type="text/javascript">
-        new Tradingview.widget({
-            "width": "100%",
-            "height": 600,
-            "symbol": "CASABLANCA:MASI20",
-            "interval": "D",
-            "timezone": "Africa/Casablanca",
-            "theme": "light",
-            "style": "1",
-            "locale": "fr",
-            "toolbar_bg": "#f1f3f6",
-            "enable_publishing": false,
-            "withdateranges": true,
-            "hide_side_toolbar": false,
-            "allow_symbol_change": true,
-            "watchlist": ["CASABLANCA:MASI", "CASABLANCA:MASI20"],
-            "details": true,
-            "hotlist": true,
-            "calendar": true,
-            "container_id": "tradingview_casablanca_masi20"
-        });
-        </script>
-    </div>
-    <!-- TradingView Widget END -->
-""", height=600)
+    <iframe 
+        src="https://fr.investing.com/indices/casablanca-30"
+        width="100%" 
+        height="650" 
+        frameborder="0"
+        style="border: none;">
+    </iframe>
+""", height=650, scrolling=True)
 
 # ────────────────────────────────────────────
 # CARACTÉRISTIQUES DES CONTRATS
