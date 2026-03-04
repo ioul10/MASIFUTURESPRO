@@ -34,15 +34,6 @@ def render_sidebar():
         
         st.divider()
         
-        st.markdown("### 🧭 Navigation")
-        
-        indice_defaut = st.selectbox("Indice", config.INDICES, index=0)
-        st.session_state['indice_defaut'] = indice_defaut
-        
-        st.info(f"Multiplicateur: {config.MULTIPLICATEUR} MAD/pt")
-        
-        st.divider()
-        
         st.markdown(f"""
             <div style='text-align: center; font-size: 0.75em; color: {config.COLORS["text_muted"]};'>
                 © 2026 MASI Futures Pro<br>
