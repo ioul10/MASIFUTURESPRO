@@ -1,19 +1,8 @@
-# ============================================
-# NEWS WIDGET COMPONENT - MASI Futures Pro
-# Actualités MASI/MASI20 (Widget Compact)
-# ============================================
-
 import streamlit as st
-import pandas as pd
 from utils.news_scraper import get_all_news
 
 def render_news_widget(max_news=5):
-    """
-    Affiche un widget compact avec les dernières news
-    
-    Args:
-        max_news: Nombre maximum d'articles à afficher
-    """
+    """Affiche un widget compact avec les dernières news"""
     
     st.markdown("### 📰 Actualités MASI")
     
