@@ -61,76 +61,78 @@ else:
 st.divider()
 
 # ────────────────────────────────────────────
-# GRAPHIQUES D'ÉVOLUTION
+# GRAPHIQUE TRADINGVIEW - MASI
 # ────────────────────────────────────────────
-st.markdown("### 📈 Évolution des Indices (30 derniers jours)")
+st.markdown("### 📈 Graphique MASI - TradingView")
 
-# Génération de données simulées pour le graphique
-# (En production, récupérer l'historique réel)
-dates = [datetime.now() - timedelta(days=i) for i in range(30)]
-dates.reverse()
-
-# Données simulées MASI
-masi_base = indices_data['MASI']['niveau'] if indices_data else 12345.67
-masi_values = [masi_base * (1 + np.random.uniform(-0.02, 0.02)) for _ in range(30)]
-masi_values[-1] = masi_base  # Dernier point = niveau actuel
-
-# Données simulées MASI20
-masi20_base = indices_data['MASI20']['niveau'] if indices_data and 'MASI20' in indices_data else 1876.54
-masi20_values = [masi20_base * (1 + np.random.uniform(-0.02, 0.02)) for _ in range(30)]
-masi20_values[-1] = masi20_base  # Dernier point = niveau actuel
-
-# Graphique
-fig = go.Figure()
-
-fig.add_trace(go.Scatter(
-    x=dates,
-    y=masi_values,
-    name='MASI',
-    line=dict(color=config.COLORS['primary'], width=3),
-    fill='tozeroy',
-    fillcolor='rgba(30, 58, 95, 0.1)'
-))
-
-fig.add_trace(go.Scatter(
-    x=dates,
-    y=masi20_values,
-    name='MASI20',
-    line=dict(color=config.COLORS['success'], width=3, dash='dash')
-))
-
-fig.update_layout(
-    title='Évolution Comparée MASI & MASI20',
-    xaxis_title='Date',
-    yaxis_title='Niveau de l\'indice',
-    hovermode='x unified',
-    height=450,
-    template='plotly_white',
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-# Statistiques
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    variation_masi = ((masi_values[-1] - masi_values[0]) / masi_values[0]) * 100
-    st.metric("MASI (30j)", f"{variation_masi:+.2f}%", 
-              delta=f"{masi_values[-1] - masi_values[0]:+.0f} pts")
-
-with col2:
-    variation_masi20 = ((masi20_values[-1] - masi20_values[0]) / masi20_values[0]) * 100
-    st.metric("MASI20 (30j)", f"{variation_masi20:+.2f}%",
-              delta=f"{masi20_values[-1] - masi20_values[0]:+.0f} pts")
-
-with col3:
-    st.metric("Plus Haut MASI", f"{max(masi_values):,.2f} pts")
-
-with col4:
-    st.metric("Plus Bas MASI", f"{min(masi_values):,.2f} pts")
+st.components.v1.html("""
+    <!-- TradingView Widget BEGIN -->
+    <div class="tradingview-widget-container" style="height:600px;">
+        <div id="tradingview_casablanca"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/externalui.js"></script>
+        <script type="text/javascript">
+        new Tradingview.widget({
+            "width": "100%",
+            "height": 600,
+            "symbol": "CASABLANCA:MASI",
+            "interval": "D",
+            "timezone": "Africa/Casablanca",
+            "theme": "light",
+            "style": "1",
+            "locale": "fr",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "withdateranges": true,
+            "hide_side_toolbar": false,
+            "allow_symbol_change": true,
+            "watchlist": ["CASABLANCA:MASI", "CASABLANCA:MASI20"],
+            "details": true,
+            "hotlist": true,
+            "calendar": true,
+            "container_id": "tradingview_casablanca"
+        });
+        </script>
+    </div>
+    <!-- TradingView Widget END -->
+""", height=600)
 
 st.divider()
+
+# ────────────────────────────────────────────
+# GRAPHIQUE TRADINGVIEW - MASI20 (Optionnel)
+# ────────────────────────────────────────────
+st.markdown("### 📈 Graphique MASI20 - TradingView")
+
+st.components.v1.html("""
+    <!-- TradingView Widget BEGIN -->
+    <div class="tradingview-widget-container" style="height:600px;">
+        <div id="tradingview_casablanca_masi20"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/externalui.js"></script>
+        <script type="text/javascript">
+        new Tradingview.widget({
+            "width": "100%",
+            "height": 600,
+            "symbol": "CASABLANCA:MASI20",
+            "interval": "D",
+            "timezone": "Africa/Casablanca",
+            "theme": "light",
+            "style": "1",
+            "locale": "fr",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "withdateranges": true,
+            "hide_side_toolbar": false,
+            "allow_symbol_change": true,
+            "watchlist": ["CASABLANCA:MASI", "CASABLANCA:MASI20"],
+            "details": true,
+            "hotlist": true,
+            "calendar": true,
+            "container_id": "tradingview_casablanca_masi20"
+        });
+        </script>
+    </div>
+    <!-- TradingView Widget END -->
+""", height=600)
 
 # ────────────────────────────────────────────
 # CARACTÉRISTIQUES DES CONTRATS
