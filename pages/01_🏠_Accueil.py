@@ -1,7 +1,3 @@
-# ============================================
-# PAGE 1: ACCUEIL - MASI Futures Pro
-# ============================================
-
 import streamlit as st
 import config
 
@@ -10,22 +6,16 @@ st.title(f"Bienvenue sur {config.APP_NAME}")
 st.markdown(f"""
     <div style='padding: 30px; background: linear-gradient(135deg, {config.COLORS["card"]} 0%, #f8fafc 100%); 
                 border-radius: 16px; margin: 20px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08);'>
-        <h2 style='color: {config.COLORS["primary"]}; margin-top: 0;'>🎯 Objectif de l'Application</h2>
+        <h2 style='color: {config.COLORS["primary"]}; margin-top: 0;'>🎯 Objectif</h2>
         <p style='font-size: 1.1em; line-height: 1.8;'>
             {config.APP_NAME} est une plateforme professionnelle de pricing des contrats futures 
-            sur les indices <strong>MASI</strong> et <strong>MASI20</strong> de la Bourse de Casablanca.
-        </p>
-        <p style='font-size: 1.1em; line-height: 1.8;'>
-            Basée sur le document de référence de <strong>CDG Capital</strong>, cette application 
-            vous permet de calculer le prix théorique des futures en temps réel, d'analyser les 
-            opportunités d'arbitrage et de visualiser la structure par terme des prix.
+            sur les indices <strong>MASI</strong> et <strong>MASI20</strong>.
         </p>
     </div>
 """, unsafe_allow_html=True)
 
 st.divider()
 
-# Actions rapides
 st.markdown("### 🚀 Actions Rapides")
 
 col1, col2, col3 = st.columns(3)
@@ -39,7 +29,7 @@ with col1:
             <h3 style='font-size: 2.5em; margin: 0;'>🧮</h3>
             <h4 style='margin: 10px 0;'>Pricing</h4>
             <p style='color: {config.COLORS["text_muted"]};'>
-                Calculez le prix théorique F₀ avec sensibilités
+                Calculez le prix théorique F₀
             </p>
         </div>
     """, unsafe_allow_html=True)
@@ -53,7 +43,7 @@ with col2:
             <h3 style='font-size: 2.5em; margin: 0;'>📊</h3>
             <h4 style='margin: 10px 0;'>Indices</h4>
             <p style='color: {config.COLORS["text_muted"]};'>
-                Niveaux MASI & MASI20 en temps réel
+                Niveaux MASI & MASI20
             </p>
         </div>
     """, unsafe_allow_html=True)
@@ -67,36 +57,7 @@ with col3:
             <h3 style='font-size: 2.5em; margin: 0;'>📰</h3>
             <h4 style='margin: 10px 0;'>Actualités</h4>
             <p style='color: {config.COLORS["text_muted"]};'>
-                News du marché marocain
+                News du marché
             </p>
         </div>
     """, unsafe_allow_html=True)
-
-st.divider()
-
-# Guide d'utilisation (collapsible)
-with st.expander("📘 Guide d'Utilisation Rapide"):
-    st.markdown("""
-        ### Comment utiliser MASI Futures Pro ?
-        
-        **1. Pricing d'un Future :**
-        - Allez dans l'onglet "🧮 Pricing"
-        - Sélectionnez l'indice (MASI ou MASI20)
-        - Le niveau spot est récupéré automatiquement
-        - Ajustez les paramètres (r, q, maturité)
-        - Visualisez F₀, la base et les sensibilités
-        
-        **2. Analyse d'Arbitrage :**
-        - Comparez le prix théorique avec le prix marché
-        - Identifiez les opportunités d'arbitrage
-        - Consultez la stratégie recommandée
-        
-        **3. Term Structure :**
-        - Visualisez la courbe des futures pour différentes maturités
-        - Analysez le contango/backwardation
-        
-        **4. Données en Temps Réel :**
-        - Les niveaux MASI/MASI20 sont mis à jour automatiquement
-        - Le taux sans risque provient de BKAM
-        - Les actualités sont actualisées toutes les 30 minutes
-    """)
