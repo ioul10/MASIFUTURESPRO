@@ -200,8 +200,30 @@ with tab3:
     fig_compare.update_layout(title='Performance Relative (Base 100)', height=450, template='plotly_white')
     st.plotly_chart(fig_compare, use_container_width=True)
 
-    # Tableau comparatif (déjà bon)
-    df_compare = pd.DataFrame({ ... })  # ton code existant
+    # Tableau comparatif des statistiques
+    st.divider()
+    st.markdown("### 📋 Tableau Comparatif des Statistiques")
+    
+    df_compare = pd.DataFrame({
+        'Statistique': [
+            'Prix Minimum', 'Prix Maximum', 'Moyenne', 'Médiane',
+            'Performance Cumulée', 'Volatilité Annualisée',
+            'Rendement Maximum', 'Rendement Minimum', 'Skewness'
+        ],
+…        ],
+        'MASI20': [
+            f"{stats_masi20['prix_minimum']:,.2f}",
+            f"{stats_masi20['prix_maximum']:,.2f}",
+            f"{stats_masi20['moyenne']:,.2f}",
+            f"{stats_masi20['mediane']:,.2f}",
+            f"{stats_masi20['performance_cumulee']:+.2f}%",
+            f"{stats_masi20['volatilite_annualisee']:.2f}%",
+            f"{stats_masi20['rendement_maximum']:+.2f}%",
+            f"{stats_masi20['rendement_minimum']:+.2f}%",
+            f"{stats_masi20['skewness']:.4f}"
+        ]
+    })
+    
     st.dataframe(df_compare, use_container_width=True, hide_index=True)
 
 # Actualité en bas
