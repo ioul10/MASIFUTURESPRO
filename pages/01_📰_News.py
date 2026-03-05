@@ -235,8 +235,6 @@ with tab3:
     })
     
     st.dataframe(df_compare, use_container_width=True, hide_index=True)
-    
-    st.dataframe(df_compare, use_container_width=True, hide_index=True)
 
 # Actualité en bas
 st.divider()
