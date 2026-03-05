@@ -17,6 +17,7 @@ from utils.calculations import (
     calculer_alpha,
     calculer_N_star
 )
+from utils.scraping import get_taux_sans_risque
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
