@@ -210,7 +210,7 @@ with tab3:
             'Performance Cumulée', 'Volatilité Annualisée',
             'Rendement Maximum', 'Rendement Minimum', 'Skewness'
         ],
-…        ],
+        
         'MASI20': [
             f"{stats_masi20['prix_minimum']:,.2f}",
             f"{stats_masi20['prix_maximum']:,.2f}",
