@@ -98,3 +98,57 @@ def jours_vers_annees(jours):
 def calcul_cout_portage(r, q, T):
     """Coût de portage = (r - q) × T"""
     return (r - q) * T
+
+# ────────────────────────────────────────────
+# 9. CALCUL BETA ET N* (COUVERTURE)
+# ────────────────────────────────────────────
+
+def calculer_beta(rendements_portefeuille, rendements_benchmark):
+    """
+    Calcule le Beta par régression linéaire
+    Beta = Cov(Rp, Rb) / Var(Rb)
+    """
+    cov = np.cov(rendements_portefeuille, rendements_benchmark)[0, 1]
+    var = np.var(rendements_benchmark, ddof=1)
+    return cov / var if var != 0 else 1.0
+
+def calculer_correlation(rendements_portefeuille, rendements_benchmark):
+    """
+    Calcule le coefficient de corrélation de Pearson
+    """
+    return np.corrcoef(rendements_portefeuille, rendements_benchmark)[0, 1]
+
+def calculer_tracking_error(rendements_portefeuille, rendements_benchmark, annualise=True):
+    """
+    Calcule l'erreur de tracking (Tracking Error)
+    TE = Std(Rp - Rb) × √252 (si annualisé)
+    """
+    tracking_diff = np.array(rendements_portefeuille) - np.array(rendements_benchmark)
+    te = np.std(tracking_diff, ddof=1)
+    
+    if annualise:
+        te *= np.sqrt(252)
+    
+    return te
+
+def calculer_N_star(beta, valeur_portefeuille, prix_future, multiplicateur=10):
+    """
+    Calcule le nombre optimal de contrats futures pour couvrir un portefeuille
+    Formule: N* = β × P / A
+    Où A = Prix Future × Multiplicateur
+    """
+    A = prix_future * multiplicateur
+    return round(beta * valeur_portefeuille / A)
+
+def calculer_alpha(rendements_portefeuille, rendements_benchmark, taux_sans_risque=0.03):
+    """
+    Calcule l'Alpha de Jensen
+    Alpha = Rp - [Rf + β × (Rb - Rf)]
+    """
+    beta = calculer_beta(rendements_portefeuille, rendements_benchmark)
+    Rp = np.mean(rendements_portefeuille) * 252  # Annualisé
+    Rb = np.mean(rendements_benchmark) * 252  # Annualisé
+    
+    alpha = Rp - (taux_sans_risque + beta * (Rb - taux_sans_risque))
+    return alpha
+
