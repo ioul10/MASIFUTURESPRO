@@ -333,3 +333,347 @@ st.markdown(f"""
         ce qui ramènerait les prix à l'équilibre (Document §7.2 - CDG Capital).
     </div>
 """, unsafe_allow_html=True)
+
+
+# ────────────────────────────────────────────
+# SECTION 8: COUVERTURE AVEC MASI20 (NOUVEAU)
+# ────────────────────────────────────────────
+st.divider()
+st.markdown("### 🛡️ Couverture de Portefeuille avec Futures MASI20")
+
+from utils.portfolio_builder import (
+    get_masi20_constituents,
+    generer_historique_prix,
+    generer_historique_masi20,
+    calculer_valeur_portefeuille
+)
+
+# Initialiser session state
+if 'poids_modifiables' not in st.session_state:
+    st.session_state['poids_modifiables'] = False
+    st.session_state['constituents'] = get_masi20_constituents()
+    st.session_state['historique_constituents'] = generer_historique_prix(
+        st.session_state['constituents'], 
+        jours=90
+    )
+    st.session_state['historique_masi20'] = generer_historique_masi20(
+        st.session_state['historique_constituents'],
+        st.session_state['constituents']
+    )
+
+constituents = st.session_state['constituents']
+historique_constituents = st.session_state['historique_constituents']
+historique_masi20 = st.session_state['historique_masi20']
+
+# ────────────────────────────────────────────
+# TABLEAU DES CONSTITUANTS
+# ────────────────────────────────────────────
+col1, col2 = st.columns([3, 1])
+
+with col1:
+    st.markdown("#### 📋 Constituants MASI20 et Poids")
+
+with col2:
+    if st.button("✏️ Modifier les poids"):
+        st.session_state['poids_modifiables'] = not st.session_state['poids_modifiables']
+        st.rerun()
+
+# Afficher le tableau
+df_constituents = pd.DataFrame(constituents)
+df_constituents['poids'] = df_constituents['poids'] * 100  # En pourcentage
+
+if st.session_state['poids_modifiables']:
+    # Mode édition
+    edited_df = st.data_editor(
+        df_constituents,
+        column_config={
+            "poids": st.column_config.NumberColumn(
+                "Poids (%)",
+                min_value=0.0,
+                max_value=100.0,
+                step=0.1,
+                format="%.2f"
+            )
+        },
+        hide_index=True,
+        use_container_width=True
+    )
+    
+    # Normaliser les poids pour que la somme fasse 100%
+    total_poids = edited_df['poids'].sum()
+    if total_poids > 0:
+        edited_df['poids'] = edited_df['poids'] / total_poids * 100
+        
+        # Mettre à jour session_state
+        for idx, constituant in enumerate(st.session_state['constituents']):
+            constituant['poids'] = edited_df.iloc[idx]['poids'] / 100
+else:
+    # Mode lecture
+    st.dataframe(
+        df_constituents.style.format({
+            'poids': '{:.2f}%'
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+
+# Date de dernière mise à jour
+st.caption(f"📅 Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+
+# ────────────────────────────────────────────
+# CALCUL DU PORTEFEUILLE ET BETA
+# ────────────────────────────────────────────
+st.divider()
+st.markdown("#### 📊 Calcul du Beta et N*")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    valeur_portefeuille = st.number_input(
+        "💰 Valeur du portefeuille à couvrir (MAD)",
+        min_value=100_000,
+        value=10_000_000,
+        step=100_000
+    )
+
+with col2:
+    prix_future_masi20 = st.number_input(
+        "Prix Future MASI20",
+        min_value=1000.0,
+        value=historique_masi20['prix'][-1],
+        step=50.0
+    )
+
+with col3:
+    multiplicateur = config.MULTIPLICATEUR
+
+# Calculs
+rendements_portefeuille = np.zeros(89)  # 90 jours - 1
+for constituant in constituents:
+    ticker = constituant['ticker']
+    poids = constituant['poids']
+    returns = historique_constituents[ticker]['returns'][1:]  # Enlever le premier 0
+    rendements_portefeuille += poids * returns
+
+rendements_masi20 = historique_masi20['returns'][1:]
+
+beta = calculer_beta(rendements_portefeuille, rendements_masi20)
+correlation = calculer_correlation(rendements_portefeuille, rendements_masi20)
+tracking_error = calculer_tracking_error(rendements_portefeuille, rendements_masi20)
+alpha = calculer_alpha(rendements_portefeuille, rendements_masi20)
+
+N_star = calculer_N_star(beta, valeur_portefeuille, prix_future_masi20, multiplicateur)
+
+# Affichage des résultats
+st.divider()
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric(
+        "Beta du Portefeuille",
+        f"{beta:.4f}",
+        delta=f"{beta-1:+.4f} vs MASI20",
+        help="Sensibilité du portefeuille aux variations du MASI20"
+    )
+
+with col2:
+    st.metric(
+        "Corrélation",
+        f"{correlation:.4f}",
+        help="Corrélation entre le portefeuille et le MASI20 (1 = parfaite)"
+    )
+
+with col3:
+    st.metric(
+        "Tracking Error",
+        f"{tracking_error:.2f}%",
+        help="Écart-type de la différence de performance (annualisé)"
+    )
+
+with col4:
+    st.metric(
+        "Alpha (annualisé)",
+        f"{alpha:+.2f}%",
+        help="Surperformance par rapport au benchmark"
+    )
+
+# ────────────────────────────────────────────
+# RÉSULTAT N*
+# ────────────────────────────────────────────
+st.divider()
+st.markdown("#### 🎯 Nombre Optimal de Contrats (N*)")
+
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.markdown(f"""
+        <div style='padding: 30px; background: linear-gradient(135deg, #1E3A5F 0%, #2E5C8A 100%); 
+                    border-radius: 12px; text-align: center; color: white;
+                    box-shadow: 0 8px 24px rgba(30, 58, 95, 0.3);'>
+            <p style='margin: 0; font-size: 1.1em; opacity: 0.9;'>
+                Nombre optimal de contrats futures MASI20
+            </p>
+            <p style='margin: 15px 0 0 0; font-size: 3.5em; font-weight: 800;'>
+                {N_star:,}
+            </p>
+            <p style='margin: 10px 0 0 0; font-size: 1em; opacity: 0.8;'>
+                contrats
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    valeur_notionnelle_contrat = prix_future_masi20 * multiplicateur
+    st.markdown(f"""
+        **Détails du calcul :**
+        
+        • Valeur portefeuille (P): {valeur_portefeuille:,.0f} MAD
+        
+        • Beta (β): {beta:.4f}
+        
+        • Prix Future: {prix_future_masi20:,.0f} pts
+        
+        • Multiplicateur: {multiplicateur} MAD/pt
+        
+        • Valeur notionnelle/contrat: {valeur_notionnelle_contrat:,.0f} MAD
+        
+        **Formule :**
+        
+        N* = β × P / A
+        
+        N* = {beta:.4f} × {valeur_portefeuille:,.0f} / {valeur_notionnelle_contrat:,.0f}
+        
+        N* = **{N_star:,} contrats**
+    """)
+
+# ────────────────────────────────────────────
+# GRAPHIQUE DE CORRÉLATION
+# ────────────────────────────────────────────
+st.divider()
+st.markdown("#### 📈 Corrélation Portefeuille vs MASI20")
+
+fig_scatter = go.Figure()
+
+fig_scatter.add_trace(go.Scatter(
+    x=rendements_masi20 * 100,
+    y=rendements_portefeuille * 100,
+    mode='markers',
+    name='Rendements journaliers',
+    marker=dict(
+        size=6,
+        color=config.COLORS['primary'],
+        opacity=0.6
+    )
+))
+
+# Ligne de régression
+from scipy import stats
+slope, intercept, r_value, p_value, std_err = stats.linregress(rendements_masi20, rendements_portefeuille)
+x_line = np.array([min(rendements_masi20), max(rendements_masi20)])
+y_line = slope * x_line + intercept
+
+fig_scatter.add_trace(go.Scatter(
+    x=x_line * 100,
+    y=y_line * 100,
+    mode='lines',
+    name=f'Ligne de régression (R²={r_value**2:.4f})',
+    line=dict(color='#10B981', width=2)
+))
+
+fig_scatter.update_layout(
+    title='Rendements Quotidiens: Portefeuille vs MASI20',
+    xaxis_title='Rendement MASI20 (%)',
+    yaxis_title='Rendement Portefeuille (%)',
+    height=450,
+    template='plotly_white',
+    showlegend=True
+)
+
+st.plotly_chart(fig_scatter, use_container_width=True)
+
+# Stats supplémentaires
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("R² (Coefficient de détermination)", f"{r_value**2:.4f}")
+
+with col2:
+    st.metric("Pente de régression", f"{slope:.4f}")
+
+with col3:
+    st.metric("Erreur standard", f"{std_err:.6f}")
+
+# ────────────────────────────────────────────
+# GUIDE MÉTHODOLOGIQUE
+# ────────────────────────────────────────────
+with st.expander("📘 Guide Méthodologique - Calcul de N*"):
+    st.markdown("""
+        ### 🎯 Objectif
+        
+        Déterminer le nombre optimal de contrats futures MASI20 nécessaires pour couvrir 
+        un portefeuille d'actions marocaines contre le risque de marché.
+        
+        ### 📐 Formule de N*
+        
+        **N* = β × P / A**
+        
+        Où :
+        - **N*** = Nombre optimal de contrats futures
+        - **β** = Beta du portefeuille par rapport à l'indice MASI20
+        - **P** = Valeur totale du portefeuille à couvrir (MAD)
+        - **A** = Valeur notionnelle d'un contrat future = Prix Future × Multiplicateur
+        
+        ### 🔍 Qu'est-ce que le Beta ?
+        
+        Le **Beta (β)** mesure la sensibilité du portefeuille aux variations de l'indice de référence (MASI20).
+        
+        - **β = 1** : Le portefeuille évolue comme l'indice
+        - **β > 1** : Le portefeuille est plus volatil que l'indice
+        - **β < 1** : Le portefeuille est moins volatil que l'indice
+        
+        **Calcul du Beta :**
+        ```
+        β = Cov(R_portefeuille, R_MASI20) / Var(R_MASI20)
+        ```
+        
+        ### 📊 Méthodologie de Construction du Portefeuille
+        
+        1. **Récupération des constituants MASI20** : Les 20 actions les plus liquides
+        2. **Pondération** : Utilisation des poids officiels de l'indice MASI20
+        3. **Historique** : 90 jours de données de prix
+        4. **Calcul des rendements** : Rendements logarithmiques journaliers
+        5. **Régression** : Calcul du Beta par régression linéaire
+        
+        ### 📈 Interprétation des Résultats
+        
+        **Corrélation (ρ) :**
+        - Proche de 1 : Forte corrélation positive
+        - Proche de 0 : Aucune corrélation
+        - Proche de -1 : Forte corrélation négative
+        
+        **Tracking Error :**
+        Mesure l'écart-type de la différence de performance entre le portefeuille et l'indice.
+        Plus il est faible, mieux le portefeuille réplique l'indice.
+        
+        **Alpha (α) :**
+        Mesure la surperformance (ou sous-performance) du portefeuille par rapport 
+        à ce que prédit le modèle CAPM.
+        
+        ### ⚠️ Limites
+        
+        - Le Beta est calculé sur 90 jours historiques et peut évoluer
+        - La corrélation passée ne préjuge pas des corrélations futures
+        - Les coûts de transaction ne sont pas pris en compte
+        - Le rééquilibrage du portefeuille peut être nécessaire périodiquement
+        
+        ### 💡 Exemple Pratique
+        
+        Pour un portefeuille de 10 000 000 MAD avec β = 0.98 :
+        - Prix Future MASI20 = 1 876 pts
+        - Multiplicateur = 10 MAD/pt
+        - Valeur notionnelle/contrat = 18 760 MAD
+        
+        N* = 0.98 × 10 000 000 / 18 760 = **522 contrats**
+        
+        Pour couvrir le portefeuille, il faut vendre 522 contrats futures MASI20.
+    """)
