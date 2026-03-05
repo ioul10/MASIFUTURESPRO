@@ -210,7 +210,17 @@ with tab3:
             'Performance Cumulée', 'Volatilité Annualisée',
             'Rendement Maximum', 'Rendement Minimum', 'Skewness'
         ],
-        
+        'MASI': [
+            f"{stats_masi['prix_minimum']:,.2f}",
+            f"{stats_masi['prix_maximum']:,.2f}",
+            f"{stats_masi['moyenne']:,.2f}",
+            f"{stats_masi['mediane']:,.2f}",
+            f"{stats_masi['performance_cumulee']:+.2f}%",
+            f"{stats_masi['volatilite_annualisee']:.2f}%",
+            f"{stats_masi['rendement_maximum']:+.2f}%",
+            f"{stats_masi['rendement_minimum']:+.2f}%",
+            f"{stats_masi['skewness']:.4f}"
+        ],
         'MASI20': [
             f"{stats_masi20['prix_minimum']:,.2f}",
             f"{stats_masi20['prix_maximum']:,.2f}",
@@ -223,6 +233,8 @@ with tab3:
             f"{stats_masi20['skewness']:.4f}"
         ]
     })
+    
+    st.dataframe(df_compare, use_container_width=True, hide_index=True)
     
     st.dataframe(df_compare, use_container_width=True, hide_index=True)
 
