@@ -390,9 +390,9 @@ with tab1:
         """)
 
 # ════════════════════════════════════════════
-# ONGLET 3: ÉVOLUTION DU BETA
+# ONGLET 2: ÉVOLUTION DU BETA
 # ════════════════════════════════════════════
-with tab3:
+with tab2:
     st.markdown("""
         Analyse de l'évolution du Beta selon différentes périodes de calcul.
         Permet d'évaluer la stabilité du Beta dans le temps.
@@ -661,9 +661,9 @@ with tab3:
         """)
 
 # ════════════════════════════════════════════
-# ONGLET 2: PRICING THÉORIQUE
+# ONGLET 3: PRICING THÉORIQUE
 # ════════════════════════════════════════════
-with tab2:
+with tab3:
     st.markdown("""
         Calcul du prix théorique d'un future sur indice selon la formule de coût de portage.
     """)
