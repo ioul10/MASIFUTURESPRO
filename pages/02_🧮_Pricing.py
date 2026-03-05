@@ -11,6 +11,10 @@ from utils.portfolio_builder import (
     generer_historique_masi20
 )
 from utils.calculations import (
+    calculer_prix_theorique_future_bam,
+    calculer_base_future,
+    calculer_cout_portage,
+    calculer_taux_dividende_indice,
     calculer_beta,
     calculer_correlation,
     calculer_tracking_error,
