@@ -209,49 +209,127 @@ with tab1:
         height=400
     )
     
-    # Statistiques
+   # ────────────────────────────────────────────
+# STATISTIQUES EN TABLEAU
+# ────────────────────────────────────────────
+st.divider()
+st.markdown("### 📊 Mesures Statistiques")
+
+# Tableau des statistiques
+df_stats = pd.DataFrame({
+    'Statistique': [
+        'Prix Minimum',
+        'Prix Maximum',
+        'Prix Moyen',
+        'Médiane',
+        'Amplitude',
+        'Performance Cumulée',
+        'Volatilité Quotidienne',
+        'Volatilité Annualisée',
+        'Rendement Minimum',
+        'Rendement Maximum',
+        'Étendu des Rendements',
+        'Skewness',
+        'Kurtosis'
+    ],
+    'Valeur': [
+        f"{stats_masi['prix_minimum']:,.2f}",
+        f"{stats_masi['prix_maximum']:,.2f}",
+        f"{stats_masi['moyenne']:,.2f}",
+        f"{stats_masi['mediane']:,.2f}",
+        f"{stats_masi['amplitude']:,.2f}",
+        f"{stats_masi['performance_cumulee']:+.2f}%",
+        f"{stats_masi['volatilite_quotidienne']:.2f}%",
+        f"{stats_masi['volatilite_annualisee']:.2f}%",
+        f"{stats_masi['rendement_minimum']:+.2f}%",
+        f"{stats_masi['rendement_maximum']:+.2f}%",
+        f"{stats_masi['etendu_rendements']:.2f}%",
+        f"{stats_masi['skewness']:.4f}",
+        f"{stats_masi['kurtosis']:.4f}"
+    ]
+})
+
+st.dataframe(df_stats, use_container_width=True, hide_index=True)
+
+# ────────────────────────────────────────────
+# INTERPRÉTATIONS (Expander)
+# ────────────────────────────────────────────
+with st.expander("📘 Interprétations des Statistiques"):
+    st.markdown("#### 📈 Prix et Performance")
+    
+    st.markdown("**Prix Minimum**")
+    st.info(f"Le prix le plus bas atteint sur la période est de **{stats_masi['prix_minimum']:,.2f}**. ")
+    st.caption("Indique le niveau de support historique. Si le prix actuel est proche de ce niveau, l'indice pourrait être dans une zone d'achat.")
+    
+    st.markdown("**Prix Maximum**")
+    st.info(f"Le prix le plus haut atteint sur la période est de **{stats_masi['prix_maximum']:,.2f}**. ")
+    st.caption("Indique le niveau de résistance historique. Si le prix actuel est proche de ce niveau, l'indice pourrait rencontrer une résistance.")
+    
+    st.markdown("**Prix Moyen**")
+    st.info(f"Le prix moyen sur la période est de **{stats_masi['moyenne']:,.2f}**. ")
+    st.caption(f"Le cours actuel ({niveau_masi:,.2f}) est {'au-dessus' if niveau_masi > stats_masi['moyenne'] else 'en-dessous'} de la moyenne, ce qui indique une tendance {'haussière' if niveau_masi > stats_masi['moyenne'] else 'baissière'} à moyen terme.")
+    
+    st.markdown("**Médiane**")
+    st.info(f"La médiane des prix est de **{stats_masi['mediane']:,.2f}**. ")
+    st.caption("50% des observations sont au-dessus de ce prix, 50% en-dessous. Moins sensible aux valeurs extrêmes que la moyenne.")
+    
+    st.markdown("**Amplitude**")
+    st.info(f"L'amplitude est de **{stats_masi['amplitude']:,.2f}** points. ")
+    st.caption(f"C'est la différence entre le plus haut et le plus bas. Une amplitude élevée indique une forte volatilité des prix.")
+    
+    st.markdown("**Performance Cumulée**")
+    st.info(f"La performance totale sur la période est de **{stats_masi['performance_cumulee']:+.2f}%**. ")
+    st.caption(f"Un investisseur aurait {'gagné' if stats_masi['performance_cumulee'] > 0 else 'perdu'} {abs(stats_masi['performance_cumulee']):.2f}% en détenant l'indice sur cette période.")
+    
     st.divider()
-    st.markdown("### 📊 Mesures Statistiques")
+    st.markdown("📊 Rendements et Volatilité")
     
-    col1, col2 = st.columns(2)
+    st.markdown("**Volatilité Quotidienne**")
+    st.info(f"La volatilité journalière est de **{stats_masi['volatilite_quotidienne']:.2f}%**. ")
+    st.caption("Mesure l'écart-type des rendements quotidiens. Plus ce chiffre est élevé, plus le prix fluctue au quotidien. Un chiffre de 1-2% est normal pour un indice.")
     
-    with col1:
-        st.markdown("**Prix et Performance**")
-        for key in ['prix_minimum', 'prix_maximum', 'moyenne', 'mediane', 'amplitude', 'performance_cumulee']:
-            valeur = stats_masi[key]
-            with st.container():
-                col_stat, col_info = st.columns([4, 1])
-                with col_stat:
-                    if key in ['moyenne', 'mediane', 'prix_minimum', 'prix_maximum', 'amplitude']:
-                        st.metric(key.replace('_', ' ').title(), f"{valeur:,.2f}")
-                    else:
-                        st.metric(key.replace('_', ' ').title(), f"{valeur:+.2f}%")
-                with col_info:
-                    if st.button("?", key=f"masi_{key}"):
-                        st.info(interpretations[key])
+    st.markdown("**Volatilité Annualisée**")
+    st.info(f"La volatilité annualisée est de **{stats_masi['volatilite_annualisee']:.2f}%**. ")
+    st.caption("Standard pour comparer le risque annuel. Pour le MASI, une volatilité de 15-25% est typique. Plus c'est élevé, plus le risque est important.")
     
-    with col2:
-        st.markdown("**Rendements et Volatilité**")
-        for key in ['volatilite_quotidienne', 'volatilite_annualisee', 'rendement_minimum', 'rendement_maximum', 'etendu_rendements']:
-            valeur = stats_masi[key]
-            with st.container():
-                col_stat, col_info = st.columns([4, 1])
-                with col_stat:
-                    st.metric(key.replace('_', ' ').title(), f"{valeur:.2f}%")
-                with col_info:
-                    if st.button("?", key=f"masi_{key}"):
-                        st.info(interpretations[key])
-        
-        st.markdown("**Distribution**")
-        for key in ['skewness', 'kurtosis']:
-            valeur = stats_masi[key]
-            with st.container():
-                col_stat, col_info = st.columns([4, 1])
-                with col_stat:
-                    st.metric(key.title(), f"{valeur:.4f}")
-                with col_info:
-                    if st.button("?", key=f"masi_{key}"):
-                        st.info(interpretations[key])
+    st.markdown("**Rendement Minimum**")
+    st.info(f"La pire performance journalière est de **{stats_masi['rendement_minimum']:+.2f}%**. ")
+    st.caption("C'est la plus grande perte en un jour sur la période. Utile pour évaluer le risque de perte maximale à court terme (VaR historique).")
+    
+    st.markdown("**Rendement Maximum**")
+    st.info(f"La meilleure performance journalière est de **{stats_masi['rendement_maximum']:+.2f}%**. ")
+    st.caption("C'est le plus grand gain en un jour. Montre le potentiel de gain maximal à court terme.")
+    
+    st.markdown("**Étendu des Rendements**")
+    st.info(f"L'étendue des rendements est de **{stats_masi['etendu_rendements']:.2f}%**. ")
+    st.caption("Différence entre le meilleur et le pire rendement journalier. Mesure l'amplitude des variations quotidiennes possibles.")
+    
+    st.divider()
+    st.markdown("📐 Distribution des Rendements")
+    
+    st.markdown("**Skewness (Asymétrie)**")
+    skew_val = stats_masi['skewness']
+    if skew_val > 0.5:
+        interpretation = "positive : plus de gains extrêmes que de pertes extrêmes"
+    elif skew_val < -0.5:
+        interpretation = "négative : plus de pertes extrêmes que de gains extrêmes"
+    else:
+        interpretation = "proche de zéro : distribution relativement symétrique"
+    
+    st.info(f"Le skewness est de **{skew_val:.4f}**, ce qui indique une distribution {interpretation}. ")
+    st.caption("Un skewness positif est généralement préféré car il indique plus de chances de gains exceptionnels.")
+    
+    st.markdown("**Kurtosis (Aplatissement)**")
+    kurt_val = stats_masi['kurtosis']
+    if kurt_val > 3:
+        interpretation = f"élevé ({kurt_val:.2f} > 3) : présence de 'fat tails' (valeurs extrêmes plus fréquentes)"
+    elif kurt_val < 3:
+        interpretation = f"faible ({kurt_val:.2f} < 3) : distribution plus plate que la normale"
+    else:
+        interpretation = "normal (≈3) : similaire à une distribution normale"
+    
+    st.info(f"Le kurtosis est de **{kurt_val:.4f}**, ce qui indique une distribution {interpretation}. ")
+    st.caption("Un kurtosis élevé signifie plus de risques d'événements extrêmes (krachs ou rallies soudains) qu'une distribution normale ne le prédirait.")
 
 # ────────────────────────────────────────────
 # ONGLET 2: MASI20
@@ -306,49 +384,127 @@ with tab2:
         height=400
     )
     
-    # Statistiques
+    # ────────────────────────────────────────────
+# STATISTIQUES EN TABLEAU
+# ────────────────────────────────────────────
+st.divider()
+st.markdown("### 📊 Mesures Statistiques")
+
+# Tableau des statistiques
+df_stats = pd.DataFrame({
+    'Statistique': [
+        'Prix Minimum',
+        'Prix Maximum',
+        'Prix Moyen',
+        'Médiane',
+        'Amplitude',
+        'Performance Cumulée',
+        'Volatilité Quotidienne',
+        'Volatilité Annualisée',
+        'Rendement Minimum',
+        'Rendement Maximum',
+        'Étendu des Rendements',
+        'Skewness',
+        'Kurtosis'
+    ],
+    'Valeur': [
+        f"{stats_masi['prix_minimum']:,.2f}",
+        f"{stats_masi['prix_maximum']:,.2f}",
+        f"{stats_masi['moyenne']:,.2f}",
+        f"{stats_masi['mediane']:,.2f}",
+        f"{stats_masi['amplitude']:,.2f}",
+        f"{stats_masi['performance_cumulee']:+.2f}%",
+        f"{stats_masi['volatilite_quotidienne']:.2f}%",
+        f"{stats_masi['volatilite_annualisee']:.2f}%",
+        f"{stats_masi['rendement_minimum']:+.2f}%",
+        f"{stats_masi['rendement_maximum']:+.2f}%",
+        f"{stats_masi['etendu_rendements']:.2f}%",
+        f"{stats_masi['skewness']:.4f}",
+        f"{stats_masi['kurtosis']:.4f}"
+    ]
+})
+
+st.dataframe(df_stats, use_container_width=True, hide_index=True)
+
+# ────────────────────────────────────────────
+# INTERPRÉTATIONS (Expander)
+# ────────────────────────────────────────────
+with st.expander("📘 Interprétations des Statistiques"):
+    st.markdown("#### 📈 Prix et Performance")
+    
+    st.markdown("**Prix Minimum**")
+    st.info(f"Le prix le plus bas atteint sur la période est de **{stats_masi['prix_minimum']:,.2f}**. ")
+    st.caption("Indique le niveau de support historique. Si le prix actuel est proche de ce niveau, l'indice pourrait être dans une zone d'achat.")
+    
+    st.markdown("**Prix Maximum**")
+    st.info(f"Le prix le plus haut atteint sur la période est de **{stats_masi['prix_maximum']:,.2f}**. ")
+    st.caption("Indique le niveau de résistance historique. Si le prix actuel est proche de ce niveau, l'indice pourrait rencontrer une résistance.")
+    
+    st.markdown("**Prix Moyen**")
+    st.info(f"Le prix moyen sur la période est de **{stats_masi['moyenne']:,.2f}**. ")
+    st.caption(f"Le cours actuel ({niveau_masi:,.2f}) est {'au-dessus' if niveau_masi > stats_masi['moyenne'] else 'en-dessous'} de la moyenne, ce qui indique une tendance {'haussière' if niveau_masi > stats_masi['moyenne'] else 'baissière'} à moyen terme.")
+    
+    st.markdown("**Médiane**")
+    st.info(f"La médiane des prix est de **{stats_masi['mediane']:,.2f}**. ")
+    st.caption("50% des observations sont au-dessus de ce prix, 50% en-dessous. Moins sensible aux valeurs extrêmes que la moyenne.")
+    
+    st.markdown("**Amplitude**")
+    st.info(f"L'amplitude est de **{stats_masi['amplitude']:,.2f}** points. ")
+    st.caption(f"C'est la différence entre le plus haut et le plus bas. Une amplitude élevée indique une forte volatilité des prix.")
+    
+    st.markdown("**Performance Cumulée**")
+    st.info(f"La performance totale sur la période est de **{stats_masi['performance_cumulee']:+.2f}%**. ")
+    st.caption(f"Un investisseur aurait {'gagné' if stats_masi['performance_cumulee'] > 0 else 'perdu'} {abs(stats_masi['performance_cumulee']):.2f}% en détenant l'indice sur cette période.")
+    
     st.divider()
-    st.markdown("### 📊 Mesures Statistiques")
+    st.markdown("📊 Rendements et Volatilité")
     
-    col1, col2 = st.columns(2)
+    st.markdown("**Volatilité Quotidienne**")
+    st.info(f"La volatilité journalière est de **{stats_masi['volatilite_quotidienne']:.2f}%**. ")
+    st.caption("Mesure l'écart-type des rendements quotidiens. Plus ce chiffre est élevé, plus le prix fluctue au quotidien. Un chiffre de 1-2% est normal pour un indice.")
     
-    with col1:
-        st.markdown("**Prix et Performance**")
-        for key in ['prix_minimum', 'prix_maximum', 'moyenne', 'mediane', 'amplitude', 'performance_cumulee']:
-            valeur = stats_masi20[key]
-            with st.container():
-                col_stat, col_info = st.columns([4, 1])
-                with col_stat:
-                    if key in ['moyenne', 'mediane', 'prix_minimum', 'prix_maximum', 'amplitude']:
-                        st.metric(key.replace('_', ' ').title(), f"{valeur:,.2f}")
-                    else:
-                        st.metric(key.replace('_', ' ').title(), f"{valeur:+.2f}%")
-                with col_info:
-                    if st.button("?", key=f"masi20_{key}"):
-                        st.info(interpretations[key])
+    st.markdown("**Volatilité Annualisée**")
+    st.info(f"La volatilité annualisée est de **{stats_masi['volatilite_annualisee']:.2f}%**. ")
+    st.caption("Standard pour comparer le risque annuel. Pour le MASI, une volatilité de 15-25% est typique. Plus c'est élevé, plus le risque est important.")
     
-    with col2:
-        st.markdown("**Rendements et Volatilité**")
-        for key in ['volatilite_quotidienne', 'volatilite_annualisee', 'rendement_minimum', 'rendement_maximum', 'etendu_rendements']:
-            valeur = stats_masi20[key]
-            with st.container():
-                col_stat, col_info = st.columns([4, 1])
-                with col_stat:
-                    st.metric(key.replace('_', ' ').title(), f"{valeur:.2f}%")
-                with col_info:
-                    if st.button("?", key=f"masi20_{key}"):
-                        st.info(interpretations[key])
-        
-        st.markdown("**Distribution**")
-        for key in ['skewness', 'kurtosis']:
-            valeur = stats_masi20[key]
-            with st.container():
-                col_stat, col_info = st.columns([4, 1])
-                with col_stat:
-                    st.metric(key.title(), f"{valeur:.4f}")
-                with col_info:
-                    if st.button("?", key=f"masi20_{key}"):
-                        st.info(interpretations[key])
+    st.markdown("**Rendement Minimum**")
+    st.info(f"La pire performance journalière est de **{stats_masi['rendement_minimum']:+.2f}%**. ")
+    st.caption("C'est la plus grande perte en un jour sur la période. Utile pour évaluer le risque de perte maximale à court terme (VaR historique).")
+    
+    st.markdown("**Rendement Maximum**")
+    st.info(f"La meilleure performance journalière est de **{stats_masi['rendement_maximum']:+.2f}%**. ")
+    st.caption("C'est le plus grand gain en un jour. Montre le potentiel de gain maximal à court terme.")
+    
+    st.markdown("**Étendu des Rendements**")
+    st.info(f"L'étendue des rendements est de **{stats_masi['etendu_rendements']:.2f}%**. ")
+    st.caption("Différence entre le meilleur et le pire rendement journalier. Mesure l'amplitude des variations quotidiennes possibles.")
+    
+    st.divider()
+    st.markdown("📐 Distribution des Rendements")
+    
+    st.markdown("**Skewness (Asymétrie)**")
+    skew_val = stats_masi['skewness']
+    if skew_val > 0.5:
+        interpretation = "positive : plus de gains extrêmes que de pertes extrêmes"
+    elif skew_val < -0.5:
+        interpretation = "négative : plus de pertes extrêmes que de gains extrêmes"
+    else:
+        interpretation = "proche de zéro : distribution relativement symétrique"
+    
+    st.info(f"Le skewness est de **{skew_val:.4f}**, ce qui indique une distribution {interpretation}. ")
+    st.caption("Un skewness positif est généralement préféré car il indique plus de chances de gains exceptionnels.")
+    
+    st.markdown("**Kurtosis (Aplatissement)**")
+    kurt_val = stats_masi['kurtosis']
+    if kurt_val > 3:
+        interpretation = f"élevé ({kurt_val:.2f} > 3) : présence de 'fat tails' (valeurs extrêmes plus fréquentes)"
+    elif kurt_val < 3:
+        interpretation = f"faible ({kurt_val:.2f} < 3) : distribution plus plate que la normale"
+    else:
+        interpretation = "normal (≈3) : similaire à une distribution normale"
+    
+    st.info(f"Le kurtosis est de **{kurt_val:.4f}**, ce qui indique une distribution {interpretation}. ")
+    st.caption("Un kurtosis élevé signifie plus de risques d'événements extrêmes (krachs ou rallies soudains) qu'une distribution normale ne le prédirait.")
 
 # ────────────────────────────────────────────
 # ONGLET 3: COMPARAISON
