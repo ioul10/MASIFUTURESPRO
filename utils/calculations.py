@@ -152,3 +152,27 @@ def calculer_alpha(rendements_portefeuille, rendements_benchmark, taux_sans_risq
     alpha = Rp - (taux_sans_risque + beta * (Rb - taux_sans_risque))
     return alpha
 
+def calculer_prix_theorique_future_bam(spot, r, d, t):
+    """
+    Calcule le prix théorique d'un future selon la formule BAM
+    F₀ = S × e^((r-d)t)
+    
+    Args:
+        spot: Prix spot de l'indice
+        r: Taux sans risque (décimal)
+        d: Taux de dividende (décimal)
+        t: Temps jusqu'à l'échéance (jours/360)
+    
+    Returns:
+        Prix théorique du future
+    """
+    return spot * np.exp((r - d) * t)
+
+def calculer_base_future(F0, S0):
+    """
+    Calcule la base (différence entre future et spot)
+    """
+    base_pts = F0 - S0
+    base_pct = (base_pts / S0) * 100 if S0 != 0 else 0
+    return {'points': base_pts, 'percentage': base_pct}
+
