@@ -29,7 +29,11 @@ st.title("🧮 Pricing & Couverture")
 # ────────────────────────────────────────────
 # CRÉATION DES ONGLETS
 # ────────────────────────────────────────────
-tab1, tab2 = st.tabs(["🛡️ Calcul de N* (Beta)", "📊 Pricing Théorique"])
+tab1, tab2, tab3 = st.tabs([
+    "🛡️ Calcul de N* (Beta)",
+    "📈 Évolution du Beta",
+    "📊 Pricing Théorique"
+])
 
 # ════════════════════════════════════════════
 # ONGLET 1: CALCUL DE N* AVEC BETA
