@@ -735,72 +735,83 @@ with tab3:
     # ────────────────────────────────────────
     # CALCUL DU PRIX THÉORIQUE
     # ────────────────────────────────────────
-    st.divider()
-    st.markdown("### 📊 4. Prix Théorique du Future")
+   # ────────────────────────────────────────
+# CALCUL DU PRIX THÉORIQUE
+# ────────────────────────────────────────
+st.divider()
+st.markdown("### 📊 4. Prix Théorique du Future")
+
+# Calculer le taux de dividende si pas déjà fait
+if 'taux_dividende' not in st.session_state:
+    taux_dividende, df_details_div = calculer_taux_dividende_indice(constituents)
+    st.session_state['taux_dividende'] = taux_dividende
+    st.session_state['df_details_div'] = df_details_div
+else:
+    taux_dividende = st.session_state['taux_dividende']
+    df_details_div = st.session_state['df_details_div']
+
+# Calcul du prix théorique
+F0 = calculer_prix_theorique_future_bam(spot, r, taux_dividende, t)
+base = calculer_base_future(F0, spot)
+cout_portage = calculer_cout_portage(r, taux_dividende, t)
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.markdown(f"""
+        <div style='padding: 25px; background: linear-gradient(135deg, #1E3A5F 0%, #2E5C8A 100%); 
+                    border-radius: 12px; text-align: center; color: white;'>
+            <p style='margin: 0; font-size: 0.9em;'>Prix Théorique F₀</p>
+            <p style='margin: 10px 0 0 0; font-size: 2.5em; font-weight: 700;'>
+                {F0:,.2f}
+            </p>
+            <p style='margin: 5px 0 0 0; font-size: 0.85em;'>points</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    couleur = "#10B981" if base['points'] > 0 else "#EF4444"
+    st.markdown(f"""
+        <div style='padding: 25px; background: white; border-radius: 12px; text-align: center;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-left: 5px solid {couleur};'>
+            <p style='margin: 0; font-size: 0.9em; color: #6B7280;'>Base (F₀-S)</p>
+            <p style='margin: 10px 0 0 0; font-size: 2em; font-weight: 700; color: {couleur};'>
+                {base['points']:+,.2f}
+            </p>
+            <p style='margin: 5px 0 0 0; font-size: 0.85em; color: #6B7280;'>
+                {base['percentage']:+.2f}%
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.metric(
+        "Coût de Portage",
+        f"{cout_portage*100:+.2f}%",
+        f"(r-d)×t"
+    )
+
+with col4:
+    st.metric(
+        "Valeur Notionnelle",
+        f"{F0 * config.MULTIPLICATEUR:,.0f} MAD",
+        f"{config.MULTIPLICATEUR} MAD/pt"
+    )
+
+# Formule détaillée
+st.info(f"""
+    **Formule BAM appliquée (Instruction N° IN-2026-01):**
     
-    # Formule BAM
-    F0 = calculer_prix_theorique_future_bam(spot, r, taux_dividende, t)
-    base = calculer_base_future(F0, spot)
-    cout_portage = (r - taux_dividende) * t
+    F₀ = S × e^((r-d)t)
     
-    col1, col2, col3, col4 = st.columns(4)
+    F₀ = {spot:,.2f} × e^(({r*100:.2f}% - {taux_dividende*100:.4f}%) × {t:.4f})
     
-    with col1:
-        st.markdown(f"""
-            <div style='padding: 25px; background: linear-gradient(135deg, #1E3A5F 0%, #2E5C8A 100%); 
-                        border-radius: 12px; text-align: center; color: white;'>
-                <p style='margin: 0; font-size: 0.9em;'>Prix Théorique F₀</p>
-                <p style='margin: 10px 0 0 0; font-size: 2.5em; font-weight: 700;'>
-                    {F0:,.2f}
-                </p>
-                <p style='margin: 5px 0 0 0; font-size: 0.85em;'>points</p>
-            </div>
-        """, unsafe_allow_html=True)
+    F₀ = {spot:,.2f} × e^({(r-taux_dividende)*100:.2f}% × {t:.4f})
     
-    with col2:
-        couleur = "#10B981" if base['points'] > 0 else "#EF4444"
-        st.markdown(f"""
-            <div style='padding: 25px; background: white; border-radius: 12px; text-align: center;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-left: 5px solid {couleur};'>
-                <p style='margin: 0; font-size: 0.9em; color: #6B7280;'>Base (F₀-S)</p>
-                <p style='margin: 10px 0 0 0; font-size: 2em; font-weight: 700; color: {couleur};'>
-                    {base['points']:+,.2f}
-                </p>
-                <p style='margin: 5px 0 0 0; font-size: 0.85em; color: #6B7280;'>
-                    {base['percentage']:+.2f}%
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
+    F₀ = **{F0:,.2f} points**
     
-    with col3:
-        st.metric(
-            "Coût de Portage",
-            f"{cout_portage*100:+.2f}%",
-            f"(r-d)×t"
-        )
-    
-    with col4:
-        st.metric(
-            "Valeur Notionnelle",
-            f"{F0 * config.MULTIPLICATEUR:,.0f} MAD",
-            f"{config.MULTIPLICATEUR} MAD/pt"
-        )
-    
-    # Formule détaillée
-    st.info(f"""
-        **Formule BAM appliquée:**
-        
-        F₀ = S × e^((r-d)t)
-        
-        F₀ = {spot:,.2f} × e^(({r*100:.2f}% - {taux_dividende*100:.4f}%) × {t:.4f})
-        
-        F₀ = {spot:,.2f} × e^({(r-taux_dividende)*100:.2f}% × {t:.4f})
-        
-        F₀ = **{F0:,.2f} points**
-        
-        **Base:** {base['points']:+,.2f} points ({base['percentage']:+.2f}%)
-    """)
-    
+    **Base:** {base['points']:+,.2f} points ({base['percentage']:+.2f}%)
+""")
     # ────────────────────────────────────────
     # RÉFÉRENCES RÉGLEMENTAIRES
     # ────────────────────────────────────────
