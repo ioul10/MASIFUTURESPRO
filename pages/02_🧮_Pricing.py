@@ -20,7 +20,7 @@ from utils.calculations import (
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from datetime import datetime
+from datetime import datetime, timedelta
 from scipy import stats
 
 # Configuration de la page
