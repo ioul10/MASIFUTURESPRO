@@ -620,9 +620,204 @@ with tab2:
 # ════════════════════════════════════════════
 with tab3:
     st.markdown("""
-        Calcul du prix théorique d'un future sur indice selon la formule de coût de portage.
+        Calcul du prix théorique d'un future sur indice selon la formule BAM:
+        
+        **F₀ = S × e^((r-d)t)**
+        
+        Où **d** est calculé automatiquement à partir des dividendes des constituants MASI20.
     """)
     
-    st.info("🚧 Section en cours de développement...")
+    # ────────────────────────────────────────
+    # RÉCUPÉRATION DES DONNÉES OFFICIELLES
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 🔄 1. Données Officielles MASI20")
     
-    # Tu pourras ajouter le pricing théorique ici plus tard
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        st.markdown("Composition et dividendes récupérés depuis la Bourse de Casablanca")
+    
+    with col2:
+        if st.button("🔄 Actualiser les données", use_container_width=True):
+            if 'constituents' in cache_masi20:
+                del cache_masi20['constituents']
+            st.rerun()
+    
+    # Récupérer les constituents
+    from utils.bourse_casa_scraper import (
+        get_masi20_constituents_officiels,
+        calculer_taux_dividende_masi20
+    )
+    
+    constituents = get_masi20_constituents_officiels()
+    
+    # ────────────────────────────────────────
+    # CALCUL DU TAUX DE DIVIDENDE
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 💰 2. Calcul du Taux de Dividende (Formule BAM)")
+    
+    taux_dividende, df_details = calculer_taux_dividende_masi20(constituents)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            "Taux de Dividende (d)",
+            f"{taux_dividende*100:.4f}%",
+            help="Calculé selon: d = Σ(Pi × Di/Ci)"
+        )
+    
+    with col2:
+        st.metric(
+            "Nombre de Constituants",
+            f"{len(constituents)}",
+            help="Actions composant le MASI20"
+        )
+    
+    with col3:
+        date_maj = datetime.now().strftime('%d/%m/%Y %H:%M')
+        st.info(f"📅 MAJ: {date_maj}")
+    
+    # Afficher le détail
+    with st.expander("📊 Voir le détail du calcul par action"):
+        st.markdown("#### Détail du Calcul du Taux de Dividende")
+        st.dataframe(df_details, use_container_width=True)
+        
+        st.caption(f"""
+            **Formule:** d = Σ(Pi × Di/Ci)  
+            **Résultat:** d = {taux_dividende*100:.4f}% = {taux_dividende:.6f}
+        """)
+    
+    # ────────────────────────────────────────
+    # PARAMÈTRES DE PRICING
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 🔧 3. Paramètres de Pricing")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        spot = st.number_input(
+            "Niveau Spot MASI20 (S)",
+            min_value=1000.0,
+            value=1876.54,
+            step=10.0,
+            help="Cours de clôture du MASI20"
+        )
+    
+    with col2:
+        taux_bkam = get_taux_sans_risque('10ans')
+        r = st.number_input(
+            "Taux sans risque (r) %",
+            min_value=0.0,
+            max_value=15.0,
+            value=taux_bkam * 100,
+            step=0.1
+        ) / 100
+    
+    with col3:
+        jours = st.number_input(
+            "Jours jusqu'échéance",
+            min_value=1,
+            max_value=365,
+            value=90,
+            step=1
+        )
+        t = jours / 360  # Base 360 selon BAM
+    
+    # ────────────────────────────────────────
+    # CALCUL DU PRIX THÉORIQUE
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 📊 4. Prix Théorique du Future")
+    
+    # Formule BAM
+    F0 = calculer_prix_theorique_future_bam(spot, r, taux_dividende, t)
+    base = calculer_base_future(F0, spot)
+    cout_portage = (r - taux_dividende) * t
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown(f"""
+            <div style='padding: 25px; background: linear-gradient(135deg, #1E3A5F 0%, #2E5C8A 100%); 
+                        border-radius: 12px; text-align: center; color: white;'>
+                <p style='margin: 0; font-size: 0.9em;'>Prix Théorique F₀</p>
+                <p style='margin: 10px 0 0 0; font-size: 2.5em; font-weight: 700;'>
+                    {F0:,.2f}
+                </p>
+                <p style='margin: 5px 0 0 0; font-size: 0.85em;'>points</p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        couleur = "#10B981" if base['points'] > 0 else "#EF4444"
+        st.markdown(f"""
+            <div style='padding: 25px; background: white; border-radius: 12px; text-align: center;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-left: 5px solid {couleur};'>
+                <p style='margin: 0; font-size: 0.9em; color: #6B7280;'>Base (F₀-S)</p>
+                <p style='margin: 10px 0 0 0; font-size: 2em; font-weight: 700; color: {couleur};'>
+                    {base['points']:+,.2f}
+                </p>
+                <p style='margin: 5px 0 0 0; font-size: 0.85em; color: #6B7280;'>
+                    {base['percentage']:+.2f}%
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.metric(
+            "Coût de Portage",
+            f"{cout_portage*100:+.2f}%",
+            f"(r-d)×t"
+        )
+    
+    with col4:
+        st.metric(
+            "Valeur Notionnelle",
+            f"{F0 * config.MULTIPLICATEUR:,.0f} MAD",
+            f"{config.MULTIPLICATEUR} MAD/pt"
+        )
+    
+    # Formule détaillée
+    st.info(f"""
+        **Formule BAM appliquée:**
+        
+        F₀ = S × e^((r-d)t)
+        
+        F₀ = {spot:,.2f} × e^(({r*100:.2f}% - {taux_dividende*100:.4f}%) × {t:.4f})
+        
+        F₀ = {spot:,.2f} × e^({(r-taux_dividende)*100:.2f}% × {t:.4f})
+        
+        F₀ = **{F0:,.2f} points**
+        
+        **Base:** {base['points']:+,.2f} points ({base['percentage']:+.2f}%)
+    """)
+    
+    # ────────────────────────────────────────
+    # RÉFÉRENCES RÉGLEMENTAIRES
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 📚 Références Réglementaires")
+    
+    st.markdown("""
+        **Instruction BAM N° IN-2026-01** - Modalités de détermination des cours de clôture
+        
+        **Formule officielle:**
+        ```
+        Cours théorique = S × e^((r-d)t)
+        
+        Où:
+        - S: Prix spot (cash) de l'indice
+        - r: Taux d'intérêt sans risque
+        - d: Taux de dividende (dividend yield)
+        - t: Temps jusqu'à l'échéance [nb de jours/360]
+        
+        Taux de dividende: d = Σ(Pi × Di/Ci)
+        - Pi: Poids du titre i dans l'indice
+        - Di: Dividende par action i
+        - Ci: Cours de l'action i
+        ```
+    """)
