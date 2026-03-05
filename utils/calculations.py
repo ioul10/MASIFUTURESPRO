@@ -176,3 +176,102 @@ def calculer_base_future(F0, S0):
     base_pct = (base_pts / S0) * 100 if S0 != 0 else 0
     return {'points': base_pts, 'percentage': base_pct}
 
+# ────────────────────────────────────────────
+# 10. PRICING SELON FORMULE BAM
+# ────────────────────────────────────────────
+
+def calculer_prix_theorique_future_bam(spot, r, d, t):
+    """
+    Calcule le prix théorique d'un future selon la formule BAM
+    F₀ = S × e^((r-d)t)
+    
+    Args:
+        spot: Prix spot de l'indice (S)
+        r: Taux sans risque (décimal)
+        d: Taux de dividende (décimal)
+        t: Temps jusqu'à l'échéance (jours/360)
+    
+    Returns:
+        Prix théorique du future (F₀)
+    """
+    return spot * np.exp((r - d) * t)
+
+def calculer_base_future(F0, S0):
+    """
+    Calcule la base (différence entre future et spot)
+    
+    Args:
+        F0: Prix future théorique
+        S0: Prix spot
+    
+    Returns:
+        Dict avec base en points et pourcentage
+    """
+    base_pts = F0 - S0
+    base_pct = (base_pts / S0) * 100 if S0 != 0 else 0
+    return {'points': base_pts, 'percentage': base_pct}
+
+def calculer_cout_portage(r, d, t):
+    """
+    Calcule le coût de portage
+    Formule: (r - d) × t
+    
+    Args:
+        r: Taux sans risque
+        d: Taux de dividende
+        t: Temps (jours/360)
+    
+    Returns:
+        Coût de portage en pourcentage
+    """
+    return (r - d) * t
+
+def calculer_taux_dividende_indice(constituents):
+    """
+    Calcule le taux de dividende de l'indice selon la formule BAM
+    d = Σ(Pi × Di/Ci)
+    
+    Args:
+        constituents: Liste des constituants avec:
+            - poids (Pi)
+            - dividende_annuel (Di)
+            - cours (Ci)
+    
+    Returns:
+        taux_dividende: Taux de dividende de l'indice
+        details: DataFrame avec le détail du calcul
+    """
+    import pandas as pd
+    
+    taux_dividende_total = 0
+    details = []
+    
+    for constituant in constituents:
+        ticker = constituant['ticker']
+        poids = constituant['poids']  # Pi
+        dividende = constituant.get('dividende_annuel', 0)  # Di
+        cours = constituant.get('cours', 1)  # Ci
+        
+        # Dividend yield du titre: Di/Ci
+        dividend_yield = dividende / cours if cours > 0 else 0
+        
+        # Contribution pondérée: Pi × (Di/Ci)
+        contribution = poids * dividend_yield
+        
+        taux_dividende_total += contribution
+        
+        details.append({
+            'Ticker': ticker,
+            'Nom': constituant.get('nom', ticker),
+            'Poids (Pi)': f"{poids*100:.2f}%",
+            'Cours (Ci)': f"{cours:,.2f} MAD",
+            'Dividende (Di)': f"{dividende:,.2f} MAD",
+            'Dividend Yield (Di/Ci)': f"{dividend_yield*100:.2f}%",
+            'Contribution (Pi×Di/Ci)': f"{contribution*100:.4f}%"
+        })
+    
+    df_details = pd.DataFrame(details)
+    
+    return taux_dividende_total, df_details
+
+
