@@ -390,6 +390,277 @@ with tab1:
         """)
 
 # ════════════════════════════════════════════
+# ONGLET 3: ÉVOLUTION DU BETA
+# ════════════════════════════════════════════
+with tab3:
+    st.markdown("""
+        Analyse de l'évolution du Beta selon différentes périodes de calcul.
+        Permet d'évaluer la stabilité du Beta dans le temps.
+    """)
+    
+    # ────────────────────────────────────────
+    # PÉRIODES À TESTER
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 📊 1. Configuration des Périodes")
+    
+    periodes = st.multiselect(
+        "Sélectionnez les périodes de calcul (en jours)",
+        options=[30, 60, 90, 120, 180, 252],
+        default=[30, 60, 90, 120]
+    )
+    
+    if not periodes:
+        st.warning("⚠️ Sélectionnez au moins une période")
+        st.stop()
+    
+    # ────────────────────────────────────────
+    # CALCUL DU BETA POUR CHAQUE PÉRIODE
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 🧮 2. Calcul du Beta par Période")
+    
+    results_beta = []
+    
+    for jours in sorted(periodes):
+        # Régénérer l'historique pour cette période
+        historique_temp = generer_historique_prix(constituents, jours=jours)
+        masi20_temp = generer_historique_masi20(historique_temp, constituents)
+        
+        # Calcul des rendements
+        rendements_pf = np.zeros(jours-1)
+        for constituant in constituents:
+            ticker = constituant['ticker']
+            poids = constituant['poids']
+            returns = historique_temp[ticker]['returns'][1:]
+            rendements_pf += poids * returns
+        
+        rendements_masi = masi20_temp['returns'][1:]
+        
+        # Calcul Beta
+        beta = calculer_beta(rendements_pf, rendements_masi)
+        correlation = calculer_correlation(rendements_pf, rendements_masi)
+        tracking_error = calculer_tracking_error(rendements_pf, rendements_masi)
+        
+        results_beta.append({
+            'Période (jours)': jours,
+            'Période (mois)': round(jours/21),
+            'Beta': beta,
+            'Corrélation': correlation,
+            'Tracking Error (%)': tracking_error,
+            'Date début': (datetime.now() - timedelta(days=jours)).strftime('%d/%m/%Y'),
+            'Date fin': datetime.now().strftime('%d/%m/%Y')
+        })
+    
+    df_beta = pd.DataFrame(results_beta)
+    
+    # ────────────────────────────────────────
+    # AFFICHAGE DES RÉSULTATS
+    # ────────────────────────────────────────
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.dataframe(
+            df_beta.style.format({
+                'Beta': '{:.4f}',
+                'Corrélation': '{:.4f}',
+                'Tracking Error (%)': '{:.2f}%'
+            }),
+            use_container_width=True,
+            hide_index=True
+        )
+    
+    with col2:
+        st.markdown("**📈 Statistiques du Beta**")
+        
+        beta_mean = df_beta['Beta'].mean()
+        beta_std = df_beta['Beta'].std()
+        beta_min = df_beta['Beta'].min()
+        beta_max = df_beta['Beta'].max()
+        
+        st.metric("Beta Moyen", f"{beta_mean:.4f}")
+        st.metric("Écart-type", f"{beta_std:.4f}")
+        st.metric("Beta Minimum", f"{beta_min:.4f}")
+        st.metric("Beta Maximum", f"{beta_max:.4f}")
+        
+        # Stabilité
+        if beta_std < 0.05:
+            st.success("✅ Beta très stable")
+        elif beta_std < 0.10:
+            st.info("ℹ️ Beta relativement stable")
+        else:
+            st.warning("⚠️ Beta instable")
+    
+    # ────────────────────────────────────────
+    # GRAPHIQUE D'ÉVOLUTION
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 📈 3. Évolution du Beta selon la Période")
+    
+    fig_beta = go.Figure()
+    
+    fig_beta.add_trace(go.Scatter(
+        x=df_beta['Période (jours)'],
+        y=df_beta['Beta'],
+        mode='lines+markers',
+        name='Beta',
+        line=dict(color=config.COLORS['primary'], width=3),
+        marker=dict(size=10),
+        text=df_beta['Beta'].apply(lambda x: f'Beta: {x:.4f}'),
+        hovertemplate='Période: %{x} jours<br>Beta: %{y:.4f}<extra></extra>'
+    ))
+    
+    # Ligne de référence Beta = 1
+    fig_beta.add_hline(
+        y=1.0,
+        line_dash="dash",
+        line_color="#10B981",
+        annotation_text="Beta = 1 (Référence MASI20)",
+        annotation_position="top right"
+    )
+    
+    # Bande de confiance
+    fig_beta.add_hrect(
+        y0=beta_mean - beta_std,
+        y1=beta_mean + beta_std,
+        fillcolor="rgba(30, 58, 95, 0.1)",
+        line_width=0,
+        annotation_text="±1 Écart-type"
+    )
+    
+    fig_beta.update_layout(
+        title='Évolution du Beta selon la Période de Calcul',
+        xaxis_title='Période (jours)',
+        yaxis_title='Beta',
+        height=450,
+        template='plotly_white',
+        xaxis=dict(tickmode='linear', tick0=min(periodes), dtick=30)
+    )
+    
+    st.plotly_chart(fig_beta, use_container_width=True)
+    
+    # ────────────────────────────────────────
+    # GRAPHIQUE COMPARATIF
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 📊 4. Comparaison Beta, Corrélation et Tracking Error")
+    
+    fig_compare = go.Figure()
+    
+    # Normaliser pour affichage sur même graphique
+    beta_norm = (df_beta['Beta'] - df_beta['Beta'].min()) / (df_beta['Beta'].max() - df_beta['Beta'].min())
+    corr_norm = (df_beta['Corrélation'] - df_beta['Corrélation'].min()) / (df_beta['Corrélation'].max() - df_beta['Corrélation'].min())
+    te_norm = (df_beta['Tracking Error (%)'] - df_beta['Tracking Error (%)'].min()) / (df_beta['Tracking Error (%)'].max() - df_beta['Tracking Error (%)'].min())
+    
+    fig_compare.add_trace(go.Scatter(
+        x=df_beta['Période (jours)'],
+        y=beta_norm,
+        mode='lines+markers',
+        name='Beta (normalisé)',
+        line=dict(color=config.COLORS['primary'], width=2)
+    ))
+    
+    fig_compare.add_trace(go.Scatter(
+        x=df_beta['Période (jours)'],
+        y=corr_norm,
+        mode='lines+markers',
+        name='Corrélation (normalisé)',
+        line=dict(color='#10B981', width=2)
+    ))
+    
+    fig_compare.add_trace(go.Scatter(
+        x=df_beta['Période (jours)'],
+        y=te_norm,
+        mode='lines+markers',
+        name='Tracking Error (normalisé)',
+        line=dict(color='#EF4444', width=2)
+    ))
+    
+    fig_compare.update_layout(
+        title='Comparaison des Métriques par Période (Normalisées)',
+        xaxis_title='Période (jours)',
+        yaxis_title='Valeur Normalisée',
+        height=400,
+        template='plotly_white',
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    
+    st.plotly_chart(fig_compare, use_container_width=True)
+    
+    # ────────────────────────────────────────
+    # INTERPRÉTATION
+    # ────────────────────────────────────────
+    st.divider()
+    st.markdown("### 💡 5. Interprétation")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown(f"""
+            **📊 Analyse du Beta :**
+            
+            - **Beta moyen :** {beta_mean:.4f}
+            - **Stabilité :** {'✅ Stable' if beta_std < 0.05 else 'ℹ️ Moyenne' if beta_std < 0.10 else '⚠️ Instable'}
+            - **Variation :** {beta_max - beta_min:.4f} (max - min)
+            
+            **📈 Tendance :**
+            
+            - Beta sur 30 jours : {df_beta[df_beta['Période (jours)']==30]['Beta'].values[0] if 30 in periodes else 'N/A'}
+            - Beta sur 90 jours : {df_beta[df_beta['Période (jours)']==90]['Beta'].values[0] if 90 in periodes else 'N/A'}
+            - Beta sur 252 jours : {df_beta[df_beta['Période (jours)']==252]['Beta'].values[0] if 252 in periodes else 'N/A'}
+        """)
+    
+    with col2:
+        st.markdown(f"""
+            **🎯 Recommandations :**
+            
+            {'✅ Le Beta est stable sur différentes périodes. Vous pouvez utiliser le Beta 90 jours avec confiance.' if beta_std < 0.05 else '⚠️ Le Beta varie selon la période. Privilégiez une période longue (90-252 jours) pour plus de stabilité.'}
+            
+            **💡 Pour le calcul de N* :**
+            
+            - Utilisez le Beta sur **90 jours** pour une couverture à court terme
+            - Utilisez le Beta sur **252 jours** pour une couverture structurelle
+            - Surveillez l'évolution du Beta régulièrement
+        """)
+    
+    # ────────────────────────────────────────
+    # GUIDE
+    # ────────────────────────────────────────
+    with st.expander("📘 Guide d'Interprétation de l'Évolution du Beta"):
+        st.markdown("""
+            ### Pourquoi le Beta varie selon la période ?
+            
+            Le Beta n'est pas une constante fixe. Il évolue selon :
+            
+            1. **La période de calcul** : Plus la période est longue, plus le Beta est stable
+            2. **Les conditions de marché** : Le Beta peut changer en période de crise
+            3. **La composition du portefeuille** : Les poids des actions évoluent
+            
+            ### Comment interpréter les résultats ?
+            
+            | Observation | Interprétation | Action |
+            |-------------|----------------|--------|
+            | Beta stable sur toutes les périodes | Portefeuille cohérent | Utiliser Beta 90 jours |
+            | Beta qui augmente avec la période | Risque croissant à long terme | Surveillance accrue |
+            | Beta qui diminue avec la période | Risque décroissant à long terme | Ajustement possible |
+            | Grande variation (>0.10) | Beta instable | Utiliser moyenne mobile |
+            
+            ### Quelle période choisir pour N* ?
+            
+            | Horizon de couverture | Période recommandée |
+            |----------------------|---------------------|
+            | Court terme (< 1 mois) | 30-60 jours |
+            | Moyen terme (1-3 mois) | 90 jours |
+            | Long terme (> 3 mois) | 180-252 jours |
+            
+            ### Limites
+        
+            - Le Beta passé ne prédit pas le Beta futur
+            - Les marchés émergents (comme le Maroc) ont des Betas plus volatils
+            - Les événements exceptionnels (COVID, crise) peuvent biaiser le calcul
+        """)
+
+# ════════════════════════════════════════════
 # ONGLET 2: PRICING THÉORIQUE
 # ════════════════════════════════════════════
 with tab2:
