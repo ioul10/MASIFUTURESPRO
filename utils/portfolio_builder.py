@@ -9,34 +9,53 @@ from datetime import datetime, timedelta
 
 def get_masi20_constituents():
     """
-    Récupère la liste des constituants MASI20 avec leurs poids
-    Données mockées basées sur une composition réaliste
+    Récupère la liste des constituants MASI20 avec leurs poids, cours et dividendes
+    Données mockées réalistes pour le développement
     """
     constituents = [
-        {'ticker': 'ATW', 'nom': 'Attijariwafa Bank', 'poids': 0.185, 'secteur': 'Banque'},
-        {'ticker': 'BCP', 'nom': 'Banque Populaire', 'poids': 0.125, 'secteur': 'Banque'},
-        {'ticker': 'IAM', 'nom': 'Maroc Telecom', 'poids': 0.105, 'secteur': 'Télécom'},
-        {'ticker': 'OCP', 'nom': 'OCP Group', 'poids': 0.085, 'secteur': 'Chimie'},
-        {'ticker': 'LAF', 'nom': 'LafargeHolcim Maroc', 'poids': 0.065, 'secteur': 'Ciment'},
-        {'ticker': 'SNG', 'nom': 'Sonasid', 'poids': 0.055, 'secteur': 'Sidérurgie'},
-        {'ticker': 'MNG', 'nom': 'Managem', 'poids': 0.045, 'secteur': 'Mines'},
-        {'ticker': 'CIH', 'nom': 'CIH Bank', 'poids': 0.040, 'secteur': 'Banque'},
-        {'ticker': 'BNA', 'nom': 'Bank Al-Maghrib', 'poids': 0.038, 'secteur': 'Banque'},
-        {'ticker': 'SID', 'nom': 'Sidérurgie Nationale', 'poids': 0.035, 'secteur': 'Sidérurgie'},
-        {'ticker': 'TIS', 'nom': 'Titan Cement', 'poids': 0.032, 'secteur': 'Ciment'},
-        {'ticker': 'WAA', 'nom': 'Wafa Assurance', 'poids': 0.030, 'secteur': 'Assurance'},
-        {'ticker': 'SAB', 'nom': 'SABIC Morocco', 'poids': 0.028, 'secteur': 'Chimie'},
-        {'ticker': 'DAM', 'nom': 'Delta Holding', 'poids': 0.025, 'secteur': 'Divers'},
-        {'ticker': 'HPS', 'nom': 'HPS Group', 'poids': 0.022, 'secteur': 'Technologie'},
-        {'ticker': 'LUX', 'nom': 'Luxembourg Telecom', 'poids': 0.020, 'secteur': 'Télécom'},
-        {'ticker': 'MAM', 'nom': 'Marsa Maroc', 'poids': 0.018, 'secteur': 'Transport'},
-        {'ticker': 'NEH', 'nom': 'Nehad Group', 'poids': 0.015, 'secteur': 'Divers'},
-        {'ticker': 'OUL', 'nom': 'Oulmes', 'poids': 0.012, 'secteur': 'Agroalimentaire'},
-        {'ticker': 'RES', 'nom': 'Residence', 'poids': 0.010, 'secteur': 'Immobilier'}
+        {'ticker': 'ATW', 'nom': 'Attijariwafa Bank', 'poids': 0.185, 'secteur': 'Banque', 
+         'cours': 485.0, 'dividende_annuel': 18.0},
+        {'ticker': 'BCP', 'nom': 'Banque Populaire', 'poids': 0.125, 'secteur': 'Banque', 
+         'cours': 142.5, 'dividende_annuel': 2.5},
+        {'ticker': 'IAM', 'nom': 'Maroc Telecom', 'poids': 0.105, 'secteur': 'Télécom', 
+         'cours': 128.0, 'dividende_annuel': 7.5},
+        {'ticker': 'OCP', 'nom': 'OCP Group', 'poids': 0.085, 'secteur': 'Chimie', 
+         'cours': 7850.0, 'dividende_annuel': 120.0},
+        {'ticker': 'LAF', 'nom': 'LafargeHolcim Maroc', 'poids': 0.065, 'secteur': 'Ciment', 
+         'cours': 1650.0, 'dividende_annuel': 180.0},
+        {'ticker': 'SNG', 'nom': 'Sonasid', 'poids': 0.055, 'secteur': 'Sidérurgie', 
+         'cours': 850.0, 'dividende_annuel': 25.0},
+        {'ticker': 'MNG', 'nom': 'Managem', 'poids': 0.045, 'secteur': 'Mines', 
+         'cours': 1250.0, 'dividende_annuel': 8.0},
+        {'ticker': 'CIH', 'nom': 'CIH Bank', 'poids': 0.040, 'secteur': 'Banque', 
+         'cours': 245.0, 'dividende_annuel': 3.5},
+        {'ticker': 'BNA', 'nom': 'Bank Al-Maghrib', 'poids': 0.038, 'secteur': 'Banque', 
+         'cours': 625.0, 'dividende_annuel': 45.0},
+        {'ticker': 'SID', 'nom': 'Sidérurgie Nationale', 'poids': 0.035, 'secteur': 'Sidérurgie', 
+         'cours': 485.0, 'dividende_annuel': 15.0},
+        {'ticker': 'TIS', 'nom': 'Titan Cement', 'poids': 0.032, 'secteur': 'Ciment', 
+         'cours': 285.0, 'dividende_annuel': 4.5},
+        {'ticker': 'WAA', 'nom': 'Wafa Assurance', 'poids': 0.030, 'secteur': 'Assurance', 
+         'cours': 4850.0, 'dividende_annuel': 90.0},
+        {'ticker': 'SAB', 'nom': 'SABIC Morocco', 'poids': 0.028, 'secteur': 'Chimie', 
+         'cours': 1150.0, 'dividende_annuel': 20.0},
+        {'ticker': 'DAM', 'nom': 'Delta Holding', 'poids': 0.025, 'secteur': 'Divers', 
+         'cours': 1250.0, 'dividende_annuel': 20.0},
+        {'ticker': 'HPS', 'nom': 'HPS Group', 'poids': 0.022, 'secteur': 'Technologie', 
+         'cours': 8500.0, 'dividende_annuel': 15.0},
+        {'ticker': 'LUX', 'nom': 'Luxembourg Telecom', 'poids': 0.020, 'secteur': 'Télécom', 
+         'cours': 1850.0, 'dividende_annuel': 30.0},
+        {'ticker': 'MAM', 'nom': 'Marsa Maroc', 'poids': 0.018, 'secteur': 'Transport', 
+         'cours': 165.0, 'dividende_annuel': 2.8},
+        {'ticker': 'NEH', 'nom': 'Nehad Group', 'poids': 0.015, 'secteur': 'Divers', 
+         'cours': 95.0, 'dividende_annuel': 1.2},
+        {'ticker': 'OUL', 'nom': 'Oulmes', 'poids': 0.012, 'secteur': 'Agroalimentaire', 
+         'cours': 685.0, 'dividende_annuel': 6.0},
+        {'ticker': 'RES', 'nom': 'Residence', 'poids': 0.010, 'secteur': 'Immobilier', 
+         'cours': 485.0, 'dividende_annuel': 4.0}
     ]
     
     return constituents
-
 def generer_historique_prix(constituents, jours=90):
     """
     Génère un historique de prix simulé pour les constituants
