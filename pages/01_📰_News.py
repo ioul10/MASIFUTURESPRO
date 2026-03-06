@@ -1,6 +1,6 @@
 # ============================================
 # PAGE 1: NEWS & INDICES - MASI Futures Pro
-# Version Organisée & Propre (Corrigée)
+# Version Complète avec Interprétations
 # ============================================
 import streamlit as st
 import config
@@ -58,7 +58,7 @@ else:
 st.divider()
 
 # ────────────────────────────────────────────
-# FONCTIONS RÉUTILISABLES (plus de duplication !)
+# FONCTIONS RÉUTILISABLES
 # ────────────────────────────────────────────
 def generer_donnees_historiques(nom_indice, niveau_actuel, jours=90):
     np.random.seed(42 if nom_indice == 'MASI' else 43)
@@ -104,7 +104,90 @@ def calculer_statistiques(donnees):
     }
 
 
+def render_interpretations(stats, nom, niveau_actuel):
+    """Affiche les interprétations complètes pour toutes les statistiques"""
+    
+    # Prix et Performance
+    st.markdown("#### 📈 Prix et Performance")
+    
+    st.info(f"**Prix Minimum : {stats['prix_minimum']:,.2f}**")
+    st.caption("Le niveau le plus bas atteint sur la période. Indique un support historique. Si le cours actuel est proche, l'indice pourrait être dans une zone d'achat potentielle.")
+    
+    st.info(f"**Prix Maximum : {stats['prix_maximum']:,.2f}**")
+    st.caption("Le niveau le plus haut atteint sur la période. Indique une résistance historique. Si le cours actuel est proche, l'indice pourrait rencontrer une résistance à la hausse.")
+    
+    tendance = "au-dessus" if niveau_actuel > stats['moyenne'] else "en-dessous"
+    signal = "haussière" if niveau_actuel > stats['moyenne'] else "baissière"
+    st.info(f"**Prix Moyen : {stats['moyenne']:,.2f}**")
+    st.caption(f"Le cours actuel ({niveau_actuel:,.2f}) est {tendance} de la moyenne, ce qui indique une tendance {signal} à moyen terme.")
+    
+    st.info(f"**Médiane : {stats['mediane']:,.2f}**")
+    st.caption("50% des observations sont au-dessus, 50% en-dessous. Moins sensible aux valeurs extrêmes que la moyenne. Utile pour une analyse robuste.")
+    
+    st.info(f"**Amplitude : {stats['amplitude']:,.2f} points**")
+    st.caption("Différence entre le plus haut et le plus bas. Une amplitude élevée indique une forte volatilité des prix sur la période.")
+    
+    perf_signal = "gagné" if stats['performance_cumulee'] > 0 else "perdu"
+    st.info(f"**Performance Cumulée : {stats['performance_cumulee']:+.2f}%**")
+    st.caption(f"Un investisseur aurait {perf_signal} {abs(stats['performance_cumulee']):.2f}% en détenant l'indice sur cette période de 90 jours.")
+    
+    st.divider()
+    
+    # Rendements et Volatilité
+    st.markdown("#### 📊 Rendements et Volatilité")
+    
+    st.info(f"**Volatilité Quotidienne : {stats['volatilite_quotidienne']:.2f}%**")
+    st.caption("Écart-type des rendements journaliers. Plus ce chiffre est élevé, plus le prix fluctue au quotidien. 1-2% est normal pour un indice émergent.")
+    
+    st.info(f"**Volatilité Annualisée : {stats['volatilite_annualisee']:.2f}%**")
+    st.caption("Standard pour comparer le risque annuel. Pour le MASI, 15-25% est typique. Plus c'est élevé, plus le risque de perte importante est grand.")
+    
+    st.info(f"**Rendement Minimum : {stats['rendement_minimum']:+.2f}%**")
+    st.caption("La pire perte journalière sur la période. Utile pour évaluer le risque de perte maximale à court terme (VaR historique approximatif).")
+    
+    st.info(f"**Rendement Maximum : {stats['rendement_maximum']:+.2f}%**")
+    st.caption("Le meilleur gain journalier sur la période. Montre le potentiel de gain maximal à court terme en cas de rallye.")
+    
+    st.info(f"**Étendu des Rendements : {stats['etendu_rendements']:.2f}%**")
+    st.caption("Différence entre le meilleur et le pire rendement journalier. Mesure l'amplitude des variations quotidiennes possibles.")
+    
+    st.divider()
+    
+    # Distribution
+    st.markdown("#### 📐 Distribution des Rendements")
+    
+    skew = stats['skewness']
+    if skew > 0.5:
+        skew_interp = "positive : plus de gains extrêmes que de pertes extrêmes"
+        skew_signal = "✅ Favorable"
+    elif skew < -0.5:
+        skew_interp = "négative : plus de pertes extrêmes que de gains extrêmes"
+        skew_signal = "⚠️ Prudence"
+    else:
+        skew_interp = "proche de zéro : distribution relativement symétrique"
+        skew_signal = "ℹ️ Neutre"
+    
+    st.info(f"**Skewness : {skew:.4f} {skew_signal}**")
+    st.caption(f"Distribution {skew_interp}. Un skewness positif est généralement préféré car il indique plus de chances de gains exceptionnels.")
+    
+    kurt = stats['kurtosis']
+    if kurt > 3:
+        kurt_interp = f"élevé ({kurt:.2f} > 3) : présence de 'fat tails' (valeurs extrêmes plus fréquentes)"
+        kurt_signal = "⚠️ Risque d'événements extrêmes"
+    elif kurt < 3:
+        kurt_interp = f"faible ({kurt:.2f} < 3) : distribution plus plate que la normale"
+        kurt_signal = "ℹ️ Distribution modérée"
+    else:
+        kurt_interp = "normal (≈3) : similaire à une distribution normale"
+        kurt_signal = "✅ Distribution classique"
+    
+    st.info(f"**Kurtosis : {kurt:.4f} {kurt_signal}**")
+    st.caption(f"Distribution {kurt_interp}. Un kurtosis élevé signifie plus de risques de krachs ou rallies soudains qu'une distribution normale ne le prédirait.")
+
+
 def render_indice_section(nom, donnees, stats, niveau_actuel, couleur_graph):
+    """Affiche la section complète pour un indice"""
+    
     st.markdown(f"### 📈 Évolution du {nom}")
     
     # Graphique
@@ -115,10 +198,17 @@ def render_indice_section(nom, donnees, stats, niveau_actuel, couleur_graph):
         name=nom,
         line=dict(color=couleur_graph, width=2),
         fill='tozeroy',
-        fillcolor=f'rgba(16, 185, 129, 0.1)' if nom == 'MASI' else 'rgba(30, 58, 95, 0.1)'
+        fillcolor=f'rgba(16, 185, 129, 0.1)' if nom == 'MASI' else 'rgba(30, 58, 95, 0.1)',
+        hovertemplate='<b>%{x|%d %b %Y}</b><br>Prix: %{y:,.2f}<extra></extra>'
     ))
-    fig.update_layout(title=f'Évolution du {nom} sur 90 jours', xaxis_title='Date',
-                      yaxis_title='Niveau de l\'indice', height=450, template='plotly_white')
+    fig.update_layout(
+        title=f'Évolution du {nom} sur 90 jours',
+        xaxis_title='Date',
+        yaxis_title='Niveau de l\'indice',
+        height=450,
+        template='plotly_white',
+        hovermode='x unified'
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     # Tableau OHLC
@@ -155,15 +245,10 @@ def render_indice_section(nom, donnees, stats, niveau_actuel, couleur_graph):
     })
     st.dataframe(df_stats, use_container_width=True, hide_index=True)
 
-    # Interprétations
+    # Interprétations complètes
     with st.expander(f"📘 Interprétations des Statistiques - {nom}"):
-        # (le contenu des interprétations est identique, juste les valeurs changent)
-        st.info(f"**Prix Minimum** : {stats['prix_minimum']:,.2f}")
-        st.caption("Niveau de support historique.")
-        st.info(f"**Prix Maximum** : {stats['prix_maximum']:,.2f}")
-        st.caption("Niveau de résistance historique.")
-        st.info(f"**Prix Moyen** : {stats['moyenne']:,.2f} | Cours actuel ({niveau_actuel:,.2f}) est {'au-dessus' if niveau_actuel > stats['moyenne'] else 'en-dessous'} de la moyenne.")
-        # ... (je garde le reste tel quel pour ne pas alourdir, mais tu peux le garder complet)
+        render_interpretations(stats, nom, niveau_actuel)
+
 
 # ────────────────────────────────────────────
 # GÉNÉRATION DES DONNÉES
@@ -189,18 +274,31 @@ with tab2:
     render_indice_section("MASI20", donnees_masi20, stats_masi20, niveau_masi20, config.COLORS['primary'])
 
 with tab3:
-    # (ton code de comparaison reste inchangé – il était déjà bon)
     st.markdown("### 📊 Comparaison MASI vs MASI20")
+    
     masi_normalized = [p / donnees_masi['prices'][0] * 100 for p in donnees_masi['prices']]
     masi20_normalized = [p / donnees_masi20['prices'][0] * 100 for p in donnees_masi20['prices']]
     
     fig_compare = go.Figure()
-    fig_compare.add_trace(go.Scatter(x=donnees_masi['dates'], y=masi_normalized, name='MASI', line=dict(color='#10B981', width=2)))
-    fig_compare.add_trace(go.Scatter(x=donnees_masi20['dates'], y=masi20_normalized, name='MASI20', line=dict(color=config.COLORS['primary'], width=2, dash='dash')))
-    fig_compare.update_layout(title='Performance Relative (Base 100)', height=450, template='plotly_white')
+    fig_compare.add_trace(go.Scatter(
+        x=donnees_masi['dates'], y=masi_normalized, name='MASI',
+        line=dict(color='#10B981', width=2)
+    ))
+    fig_compare.add_trace(go.Scatter(
+        x=donnees_masi20['dates'], y=masi20_normalized, name='MASI20',
+        line=dict(color=config.COLORS['primary'], width=2, dash='dash')
+    ))
+    fig_compare.update_layout(
+        title='Performance Relative (Base 100)',
+        xaxis_title='Date',
+        yaxis_title='Performance (%)',
+        height=450,
+        template='plotly_white',
+        hovermode='x unified'
+    )
     st.plotly_chart(fig_compare, use_container_width=True)
 
-    # Tableau comparatif des statistiques
+    # Tableau comparatif
     st.divider()
     st.markdown("### 📋 Tableau Comparatif des Statistiques")
     
