@@ -14,40 +14,34 @@ def render_sidebar():
     
     with st.sidebar:
         # ────────────────────────────────────────
-        # ANIMATION DE CHARGEMENT (Première ouverture)
+        # ANIMATION DE CHARGEMENT
         # ────────────────────────────────────────
         if 'sidebar_initialized' not in st.session_state:
-            # Barre de progression
             progress_bar = st.progress(0)
             status_text = st.empty()
             
-            # Étape 1: Vérification BKAM
             status_text.text("🔍 Vérification des connexions...")
             time.sleep(0.4)
             progress_bar.progress(25)
             
-            # Étape 2: Connexion BKAM
             status_text.text("📊 Connexion à BKAM (Taux)...")
             time.sleep(0.4)
             progress_bar.progress(50)
             
-            # Étape 3: Connexion Bourse
             status_text.text("🏦 Connexion Bourse de Casablanca...")
             time.sleep(0.4)
             progress_bar.progress(75)
             
-            # Étape 4: Prêt
             status_text.text("✅ Application prête !")
             time.sleep(0.3)
             
-            # Nettoyer l'animation
             progress_bar.empty()
             status_text.empty()
             
             st.session_state['sidebar_initialized'] = True
         
         # ────────────────────────────────────────
-        # EN-TÊTE DE L'APPLICATION
+        # EN-TÊTE DE L'APPLICATION (Correction ici)
         # ────────────────────────────────────────
         st.markdown(f"""
             <div style='
@@ -93,11 +87,11 @@ def render_sidebar():
                     Conforme BAM IN-2026-01
                 </div>
             </div>
-        """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)  # ← CE PARAMÈTRE EST ESSENTIEL !
         
-        # ────────────────────────────────────────
-        # STATUT DES DONNÉES
-        # ────────────────────────────────────────
+        # Le reste du code...
+        st.divider()
+        
         st.markdown("### 🔗 Statut des Données")
         
         statut_bkam = st.session_state.get('statut_bkam', '🟢')
@@ -128,27 +122,18 @@ def render_sidebar():
         """, unsafe_allow_html=True)
         
         st.divider()
-        
-        # ────────────────────────────────────────
-        # NAVIGATION
-        # ────────────────────────────────────────
         st.markdown("### 🧭 Navigation")
         
         indice_defaut = st.selectbox(
             "🇲🇦 Indice de Référence",
             config.INDICES,
-            index=0,
-            help="Sélectionnez l'indice pour les calculs"
+            index=0
         )
         st.session_state['indice_defaut'] = indice_defaut
         
         st.info(f"💰 Multiplicateur: **{config.MULTIPLICATEUR} MAD/point**")
         
         st.divider()
-        
-        # ────────────────────────────────────────
-        # DÉVELOPPEURS
-        # ────────────────────────────────────────
         st.markdown("### 👥 Développeurs")
         
         st.markdown(f"""
@@ -174,9 +159,6 @@ def render_sidebar():
             </div>
         """, unsafe_allow_html=True)
         
-        # ────────────────────────────────────────
-        # INFORMATIONS COMPLÉMENTAIRES
-        # ────────────────────────────────────────
         st.markdown("### 📚 Ressources")
         
         st.markdown(f"""
@@ -197,9 +179,6 @@ def render_sidebar():
         
         st.divider()
         
-        # ────────────────────────────────────────
-        # FOOTER SIDEBAR
-        # ────────────────────────────────────────
         current_year = datetime.now().year
         
         st.markdown(f"""
