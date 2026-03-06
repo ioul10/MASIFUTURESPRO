@@ -45,7 +45,7 @@ def render_sidebar():
         try:
             # Option 1: Logo depuis un fichier local
             st.image(
-                "assets/logo.png",  # Chemin vers ton logo
+                "logo.png",  # Chemin vers ton logo
                 use_container_width=True,
                 output_format="PNG"
             )
@@ -136,3 +136,4 @@ def render_sidebar():
         current_year = datetime.now().year
         st.caption(f"© {current_year} MASI Futures Pro")
         st.caption("Conforme Instruction BAM N° IN-2026-01")
+
