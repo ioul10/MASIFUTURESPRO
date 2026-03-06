@@ -29,7 +29,7 @@ def show_splash_screen():
         
         # Afficher le logo PNG
         try:
-            st.image("assets/logo.png", width=250, use_container_width=False)
+            st.image("logo.png", width=250, use_container_width=False)
         except:
             st.markdown("<div style='font-size: 5em;'>📈</div>", unsafe_allow_html=True)
         
@@ -394,4 +394,5 @@ with st.expander("📚 Instruction BAM N° IN-2026-01 — Modalités de détermi
 
 # Footer
 render_footer()
+
 
