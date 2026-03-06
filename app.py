@@ -11,6 +11,95 @@ from components.footer import render_footer
 from utils.scraping import update_statut_connexions
 from datetime import datetime
 
+def show_splash_screen():
+    """Affiche l'écran de chargement avec logo PNG"""
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("""
+            <div style='
+                text-align: center;
+                padding: 60px 20px;
+                background: linear-gradient(135deg, #1E3A5F 0%, #2E5C8A 100%);
+                border-radius: 20px;
+                box-shadow: 0 8px 32px rgba(30, 58, 95, 0.3);
+            '>
+        """, unsafe_allow_html=True)
+        
+        # Afficher le logo PNG
+        try:
+            st.image("assets/logo.png", width=250, use_container_width=False)
+        except:
+            st.markdown("<div style='font-size: 5em;'>📈</div>", unsafe_allow_html=True)
+        
+        st.markdown(f"""
+            <h1 style='
+                color: white;
+                font-size: 2.5em;
+                margin: 30px 0 10px 0;
+                font-weight: 700;
+                text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            '>
+                {config.APP_NAME}
+            </h1>
+            
+            <p style='
+                color: rgba(255,255,255,0.9);
+                font-size: 1.2em;
+                margin: 10px 0 30px 0;
+            '>
+                v{config.APP_VERSION}
+            </p>
+            
+            <div style='
+                padding: 20px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 10px;
+            '>
+                <p style='
+                    color: rgba(255,255,255,0.8);
+                    font-size: 0.9em;
+                    animation: pulse 1.5s infinite;
+                '>
+                    🔍 Initialisation des connexions...<br>
+                    📊 Chargement des données de marché...<br>
+                    ✅ Prêt !
+                </p>
+            </div>
+            
+            <p style='
+                color: rgba(255,255,255,0.6);
+                margin-top: 20px;
+                font-size: 0.8em;
+            '>
+                Développé par OULMADANI Ilyas & ATANANE Oussama
+            </p>
+            
+            </div>
+            
+            <style>
+                @keyframes pulse {
+                    0%, 100% { opacity: 0.6; }
+                    50% { opacity: 1; }
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+# =============================================================================
+# INITIALISATION DE L'APPLICATION
+# =============================================================================
+
+# Afficher l'écran de chargement
+show_splash_screen()
+
+# Attendre 3 secondes (simulation de chargement)
+import time
+time.sleep(3)
+
+# Maintenant afficher le vrai contenu
+st.empty()  # Effacer l'écran de chargement
+
 st.set_page_config(
     page_title=config.APP_NAME,
     page_icon="📈",
@@ -305,3 +394,4 @@ with st.expander("📚 Instruction BAM N° IN-2026-01 — Modalités de détermi
 
 # Footer
 render_footer()
+
