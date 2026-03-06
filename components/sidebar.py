@@ -1,7 +1,6 @@
 # ============================================
 # SIDEBAR - MASI Futures Pro
-# Version Finale V.0.2 Beta
-# Développeurs: OULMADANI Ilyas & ATANANE Oussama
+# Version avec Logo
 # ============================================
 
 import streamlit as st
@@ -10,7 +9,7 @@ import time
 from datetime import datetime
 
 def render_sidebar():
-    """Affiche la sidebar avec animation de chargement"""
+    """Affiche la sidebar avec logo"""
     
     with st.sidebar:
         # ────────────────────────────────────────
@@ -41,16 +40,40 @@ def render_sidebar():
             st.session_state['sidebar_initialized'] = True
         
         # ────────────────────────────────────────
-        # EN-TÊTE (Simple et Propre)
+        # LOGO (Au lieu du titre texte)
         # ────────────────────────────────────────
+        try:
+            # Option 1: Logo depuis un fichier local
+            st.image(
+                "assets/logo.png",  # Chemin vers ton logo
+                use_container_width=True,
+                output_format="PNG"
+            )
+        except:
+            # Fallback: Emoji si logo non trouvé
+            st.markdown(
+                "<div style='text-align: center; font-size: 4em; margin: 20px 0;'>📈</div>",
+                unsafe_allow_html=True
+            )
+        
+        # Nom de l'application sous le logo
         st.markdown(f"""
-            <div style='text-align: center; padding: 20px 0;'>
-                <div style='font-size: 3em; margin-bottom: 10px;'>📈</div>
-                <h1 style='font-size: 1.8em; margin: 0; color: {config.COLORS["primary"]}; font-weight: 700;'>
+            <div style='text-align: center; margin: 15px 0;'>
+                <h2 style='
+                    font-size: 1.5em;
+                    margin: 10px 0;
+                    color: {config.COLORS["primary"]};
+                    font-weight: 700;
+                '>
                     {config.APP_NAME}
-                </h1>
-                <p style='color: {config.COLORS["text_muted"]}; margin: 8px 0; font-size: 0.95em; font-weight: 600;'>
-                    v0.2 Beta
+                </h2>
+                <p style='
+                    color: {config.COLORS["text_muted"]};
+                    margin: 5px 0;
+                    font-size: 0.9em;
+                    font-weight: 600;
+                '>
+                    v{config.APP_VERSION}
                 </p>
             </div>
         """, unsafe_allow_html=True)
