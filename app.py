@@ -1,8 +1,12 @@
-# ============================================
-# MASI Futures Pro - Version Finale
+# =============================================================================
+# MASI Futures Pro - Version Finale Corrigée
 # Conforme Instruction BAM N° IN-2026-01
-# ============================================
+# Développeurs: OULMADANI Ilyas & ATANANE Oussama | v0.2 Beta
+# =============================================================================
 
+# ─────────────────────────────────────────────────────────────────────────────
+# IMPORTS (TOUJOURS EN PREMIER)
+# ─────────────────────────────────────────────────────────────────────────────
 import streamlit as st
 import config
 from components.sidebar import render_sidebar
@@ -11,131 +15,9 @@ from components.footer import render_footer
 from utils.scraping import update_statut_connexions
 from datetime import datetime
 
-# =============================================================================
-# ANIMATION DE DÉMARRAGE - SPLASH SCREEN
-# =============================================================================
-
-def show_splash_screen():
-    """Affiche l'écran de chargement avec logo PNG"""
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        # Conteneur principal (PAS de f-string ici)
-        st.markdown("""
-            <div style='
-                text-align: center;
-                padding: 60px 20px;
-                background: linear-gradient(135deg, #1E3A5F 0%, #2E5C8A 100%);
-                border-radius: 20px;
-                box-shadow: 0 8px 32px rgba(30, 58, 95, 0.3);
-            '>
-        """, unsafe_allow_html=True)
-        
-        # Afficher le logo PNG
-        try:
-            st.image("assets/logo.png", width=250, use_container_width=False)
-        except:
-            st.markdown("<div style='font-size: 5em;'>📈</div>", unsafe_allow_html=True)
-        
-        # Nom de l'application (f-string OK car pas de CSS)
-        st.markdown(f"""
-            <h1 style='
-                color: white;
-                font-size: 2.5em;
-                margin: 30px 0 10px 0;
-                font-weight: 700;
-                text-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            '>
-                {config.APP_NAME}
-            </h1>
-            
-            <p style='
-                color: rgba(255,255,255,0.9);
-                font-size: 1.2em;
-                margin: 10px 0 30px 0;
-            '>
-                v{config.APP_VERSION}
-            </p>
-        """, unsafe_allow_html=True)
-        
-        # Message de chargement (PAS de f-string ici)
-        st.markdown("""
-            <div style='
-                padding: 20px;
-                background: rgba(255,255,255,0.1);
-                border-radius: 10px;
-            '>
-                <p style='
-                    color: rgba(255,255,255,0.8);
-                    font-size: 0.9em;
-                    animation: pulse 1.5s infinite;
-                '>
-                    🔍 Initialisation des connexions...<br>
-                    📊 Chargement des données de marché...<br>
-                    ✅ Prêt !
-                </p>
-            </div>
-            
-            <p style='
-                color: rgba(255,255,255,0.6);
-                margin-top: 20px;
-                font-size: 0.8em;
-            '>
-                Développé par OULMADANI Ilyas & ATANANE Oussama
-            </p>
-            
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # CSS dans un bloc SÉPARÉ (PAS de f-string !)
-        st.markdown("""
-            <style>
-                @keyframes pulse {
-                    0%, 100% { opacity: 0.6; }
-                    50% { opacity: 1; }
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
-# =============================================================================
-# INITIALISATION DE L'APPLICATION
-# =============================================================================
-
-# Afficher l'écran de chargement
-show_splash_screen()
-
-# Attendre 3 secondes (simulation de chargement)
-import time
-time.sleep(3)
-
-# Effacer l'écran de chargement et afficher le vrai contenu
-st.empty()
-
-# =============================================================================
-# SUITE DE L'APPLICATION
-# =============================================================================
-
-update_statut_connexions()
-render_sidebar()
-render_header()
-
-# ... (le reste de ton code app.py)
-
-# =============================================================================
-# INITIALISATION DE L'APPLICATION
-# =============================================================================
-
-# Afficher l'écran de chargement
-show_splash_screen()
-
-# Attendre 3 secondes (simulation de chargement)
-import time
-time.sleep(3)
-
-# Maintenant afficher le vrai contenu
-st.empty()  # Effacer l'écran de chargement
-
+# ─────────────────────────────────────────────────────────────────────────────
+# CONFIGURATION DE LA PAGE (DOIT ÊTRE LA PREMIÈRE COMMANDE STREAMLIT)
+# ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title=config.APP_NAME,
     page_icon="📈",
@@ -143,9 +25,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # CSS PERSONNALISÉ - DESIGN PROFESSIONNEL CDG
-# ────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 st.markdown("""
     <style>
     /* Arrière-plan global avec dégradé CDG Capital */
@@ -188,13 +70,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# ─────────────────────────────────────────────────────────────────────────────
+# INITIALISATION
+# ─────────────────────────────────────────────────────────────────────────────
 update_statut_connexions()
-
 render_sidebar()
+render_header()
 
-# ────────────────────────────────────────────
-# HORLOGE DYNAMIQUE (Auto-refresh JavaScript)
-# ────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# HORLOGE DYNAMIQUE (JavaScript - Mise à jour automatique)
+# ─────────────────────────────────────────────────────────────────────────────
 st.components.v1.html("""
     <div id='clock-container' style='padding: 15px 20px; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); 
                                      border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -215,15 +100,15 @@ st.components.v1.html("""
     function updateClock() {
         const now = new Date();
         
-        // Date
+        // Date en français
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('current-date').textContent = now.toLocaleDateString('fr-FR', options);
         
-        // Heure
+        // Heure en français
         document.getElementById('current-time').textContent = now.toLocaleTimeString('fr-FR');
         
         // Statut du marché (Lundi-Vendredi, 10h-15h30)
-        const day = now.getDay(); // 0=Dimanche, 1=Lundi, ..., 6=Samedi
+        const day = now.getDay();
         const hour = now.getHours();
         const minute = now.getMinutes();
         const currentTime = hour + minute/60;
@@ -242,11 +127,9 @@ st.components.v1.html("""
             // Calcul prochaine ouverture
             let nextOpen = new Date(now);
             if (day === 6 || day === 0 || currentTime >= 15.5) {
-                // Weekend ou après 15h30 → Lundi prochain
                 nextOpen.setDate(now.getDate() + (1 - now.getDay() + 7) % 7 || 7);
                 nextOpen.setHours(10, 0, 0, 0);
             } else {
-                // Avant 10h → Aujourd'hui
                 nextOpen.setHours(10, 0, 0, 0);
             }
             
@@ -256,13 +139,13 @@ st.components.v1.html("""
     }
     
     updateClock();
-    setInterval(updateClock, 1000); // Mise à jour chaque seconde
+    setInterval(updateClock, 1000);
     </script>
 """, height=120)
 
-# ────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # CONTENU DE LA PAGE D'ACCUEIL
-# ────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 st.title(f"Bienvenue sur {config.APP_NAME}")
 
 st.markdown(f"""
@@ -332,11 +215,8 @@ with col3:
 
 st.divider()
 
-# ────────────────────────────────────────────
-# GUIDE COMPLET - INSTRUCTION BAM N° IN-2026-01
-# ────────────────────────────────────────────
+# Guide BAM complet
 with st.expander("📚 Instruction BAM N° IN-2026-01 — Modalités de détermination des cours de clôture"):
-    
     st.markdown("""
         ### 📐 Formule du Cours Théorique (Article 2)
         
@@ -352,8 +232,6 @@ with st.expander("📚 Instruction BAM N° IN-2026-01 — Modalités de détermi
         ---
         
         ### 📋 Hiérarchie des Cours de Clôture (Article 1)
-        
-        Le cours de clôture est déterminé selon la hiérarchie suivante :
         
         1. **Cours du fixing de clôture** (priorité absolue)
         2. **Dernier cours traité** (si absence de fixing)
@@ -372,65 +250,28 @@ with st.expander("📚 Instruction BAM N° IN-2026-01 — Modalités de détermi
         | **Ci** | Cours de l'action i |
         | **Pi** | Poids du titre i dans l'indice |
         
-        **Exemple pratique :**
-        - Pour le MASI20 : somme sur les 20 constituants
-        - Utiliser les poids officiels de l'indice
-        - Dividendes annuels attendus
-        
         ---
         
         ### 🎓 Fondement Théorique
         
         > **Principe d'absence d'opportunité d'arbitrage**  
-        > À l'équilibre du marché, aucun trader ne peut réaliser un profit sans risque 
+        > À l'équilibre, aucun trader ne peut réaliser un profit sans risque 
         > en exploitant la différence entre le future et le spot.
         
-        **Stratégies d'arbitrage :**
+        ---
         
-        - **Si Prix Marché > Cours Théorique** : Vendre Future + Acheter Spot
-        - **Si Prix Marché < Cours Théorique** : Acheter Future + Vendre Spot
-        - **À l'équilibre** : Prix Marché = Cours Théorique
+        ### 🔢 Exemple Numérique
+        
+        S = 1 876.54, r = 3.5%, d = 2.8%, t = 90/360 = 0.25
+        
+        F₀ = 1 876.54 × e^((0.035-0.028)×0.25) = **1 879.82 points**
+        
+        Base = +3.28 points (+0.17%) → Contango léger
         
         ---
         
-        ### 🔢 Exemple Numérique Complet
-        
-        **Données MASI20 :**
-        - S = 1 876.54 points (spot)
-        - r = 3.5% = 0.035 (taux BKAM)
-        - d = 2.8% = 0.028 (dividend yield)
-        - Jours restants = 90
-        - t = 90/360 = 0.25
-        
-        **Calcul :**
-        ```
-        F₀ = 1 876.54 × e^((0.035 - 0.028) × 0.25)
-           = 1 876.54 × e^(0.00175)
-           = 1 876.54 × 1.001751
-           = 1 879.82 points
-        ```
-        
-        **Base :** 1 879.82 - 1 876.54 = **+3.28 points (+0.17%)**
-        
-        ---
-        
-        ### 📖 Références Réglementaires
-        
-        - **Dahir N°1-14-96** du 20 Rejeb 1435 (20 Mai 2014)  
-          Loi n°42-12 relative au marché à terme d'instruments financiers (Article 9)
-          
-        - **Règlement Général** de la société gestionnaire du marché à terme  
-          Approuvé par l'arrêté n°2582-22 du 27 septembre 2022 (Article 58)
-        
-        ---
-        
-        *Conforme à l'Instruction Bank Al-Maghrib N° IN-2026-01*  
-        *Application à usage professionnel et éducatif*
+        *Conforme à l'Instruction Bank Al-Maghrib N° IN-2026-01*
     """)
 
 # Footer
 render_footer()
-
-
-
-
