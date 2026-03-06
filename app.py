@@ -11,12 +11,17 @@ from components.footer import render_footer
 from utils.scraping import update_statut_connexions
 from datetime import datetime
 
+# =============================================================================
+# ANIMATION DE DÉMARRAGE - SPLASH SCREEN
+# =============================================================================
+
 def show_splash_screen():
     """Affiche l'écran de chargement avec logo PNG"""
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
+        # Conteneur principal (PAS de f-string ici)
         st.markdown("""
             <div style='
                 text-align: center;
@@ -29,10 +34,11 @@ def show_splash_screen():
         
         # Afficher le logo PNG
         try:
-            st.image("logo.png", width=250, use_container_width=False)
+            st.image("assets/logo.png", width=250, use_container_width=False)
         except:
             st.markdown("<div style='font-size: 5em;'>📈</div>", unsafe_allow_html=True)
         
+        # Nom de l'application (f-string OK car pas de CSS)
         st.markdown(f"""
             <h1 style='
                 color: white;
@@ -51,7 +57,10 @@ def show_splash_screen():
             '>
                 v{config.APP_VERSION}
             </p>
-            
+        """, unsafe_allow_html=True)
+        
+        # Message de chargement (PAS de f-string ici)
+        st.markdown("""
             <div style='
                 padding: 20px;
                 background: rgba(255,255,255,0.1);
@@ -77,7 +86,10 @@ def show_splash_screen():
             </p>
             
             </div>
-            
+        """, unsafe_allow_html=True)
+        
+        # CSS dans un bloc SÉPARÉ (PAS de f-string !)
+        st.markdown("""
             <style>
                 @keyframes pulse {
                     0%, 100% { opacity: 0.6; }
@@ -85,6 +97,30 @@ def show_splash_screen():
                 }
             </style>
         """, unsafe_allow_html=True)
+
+# =============================================================================
+# INITIALISATION DE L'APPLICATION
+# =============================================================================
+
+# Afficher l'écran de chargement
+show_splash_screen()
+
+# Attendre 3 secondes (simulation de chargement)
+import time
+time.sleep(3)
+
+# Effacer l'écran de chargement et afficher le vrai contenu
+st.empty()
+
+# =============================================================================
+# SUITE DE L'APPLICATION
+# =============================================================================
+
+update_statut_connexions()
+render_sidebar()
+render_header()
+
+# ... (le reste de ton code app.py)
 
 # =============================================================================
 # INITIALISATION DE L'APPLICATION
@@ -394,5 +430,6 @@ with st.expander("📚 Instruction BAM N° IN-2026-01 — Modalités de détermi
 
 # Footer
 render_footer()
+
 
 
