@@ -1,6 +1,6 @@
 # ============================================
 # SIDEBAR - MASI Futures Pro
-# Version Simplifiée V.0.2 Beta
+# Version Finale V.0.2 Beta
 # Développeurs: OULMADANI Ilyas & ATANANE Oussama
 # ============================================
 
@@ -41,7 +41,7 @@ def render_sidebar():
             st.session_state['sidebar_initialized'] = True
         
         # ────────────────────────────────────────
-        # EN-TÊTE (SANS CADRE BLEU - Version Simple)
+        # EN-TÊTE (Simple et Propre)
         # ────────────────────────────────────────
         st.markdown(f"""
             <div style='text-align: center; padding: 20px 0;'>
@@ -52,16 +52,13 @@ def render_sidebar():
                 <p style='color: {config.COLORS["text_muted"]}; margin: 8px 0; font-size: 0.95em; font-weight: 600;'>
                     v0.2 Beta
                 </p>
-                <p style='color: {config.COLORS["text_muted"]}; margin: 5px 0; font-size: 0.8em;'>
-                    Conforme BAM IN-2026-01
-                </p>
             </div>
         """, unsafe_allow_html=True)
         
         st.divider()
         
         # ────────────────────────────────────────
-        # STATUT DES DONNÉES (Simple)
+        # STATUT DES DONNÉES
         # ────────────────────────────────────────
         st.markdown("### 🔗 Statut des Données")
         
@@ -102,9 +99,9 @@ def render_sidebar():
         st.divider()
         
         # ────────────────────────────────────────
-        # INFOS
+        # INFORMATIONS
         # ────────────────────────────────────────
-        st.markdown("### 📚 Ressources")
+        st.markdown("### 📚 Informations")
         
         st.write("📖 **Basé sur:**")
         st.write("Document CDG Capital")
@@ -114,4 +111,5 @@ def render_sidebar():
         
         # Footer
         current_year = datetime.now().year
-        st.caption(f"© {current_year} MASI Futures Pro - Conforme Instruction BAM N° IN-2026-01")
+        st.caption(f"© {current_year} MASI Futures Pro")
+        st.caption("Conforme Instruction BAM N° IN-2026-01")
