@@ -79,7 +79,7 @@ def show_splash_screen():
         
         # Logo
         try:
-            st.image("assets/logo.png", width=250, use_container_width=False)
+            st.image("logo.png", width=250, use_container_width=False)
         except:
             st.markdown("<div style='font-size: 5em; margin: 20px 0;'>📈</div>", unsafe_allow_html=True)
         
@@ -225,3 +225,4 @@ with st.expander("📘 Guide d'Utilisation Rapide"):
 
 # Footer
 render_footer()
+
