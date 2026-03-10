@@ -1,18 +1,17 @@
 # =============================================================================
-# MASI Futures Pro - Version Finale
-# Conforme Instruction BAM N° IN-2026-01
-# Développeurs: OULMADANI Ilyas & ATANANE Oussama | v0.2 Beta
+# MASI Futures Pro — Page d'Accueil
+# Version 0.3 — Pages Séparées
 # =============================================================================
 
-# Imports
 import streamlit as st
 import config
 from components.sidebar import render_sidebar
 from components.header import render_header
 from components.footer import render_footer
 from utils.scraping import update_statut_connexions
+from datetime import datetime
 
-# Configuration de la page (TOUJOURS EN PREMIER)
+# Configuration (TOUJOURS EN PREMIER)
 st.set_page_config(
     page_title=config.APP_NAME,
     page_icon="📈",
@@ -26,24 +25,20 @@ st.markdown("""
     .main {
         background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 50%, #d4dce6 100%);
     }
-    
     .stApp > header {
         background: linear-gradient(90deg, #1E3A5F 0%, #2E5C8A 100%);
         box-shadow: 0 2px 8px rgba(30, 58, 95, 0.3);
     }
-    
     .metric-card:hover {
         transform: translateY(-4px);
         box-shadow: 0 8px 20px rgba(30, 58, 95, 0.15);
         transition: all 0.3s ease;
     }
-    
     .stButton>button {
         background: linear-gradient(135deg, #1E3A5F 0%, #2E5C8A 100%);
         color: white !important;
         border: none;
     }
-    
     .stButton>button:hover {
         background: linear-gradient(135deg, #2E5C8A 0%, #3E7CAD 100%);
         transform: translateY(-2px);
@@ -57,66 +52,46 @@ update_statut_connexions()
 render_sidebar()
 render_header()
 
-# Horloge Dynamique JavaScript
+# Horloge Dynamique
 st.components.v1.html("""
-    <div id='clock-container' style='padding: 15px 20px; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); 
-                                     border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-                                     border-left: 5px solid #1E3A5F;'>
-        <div style='display: flex; justify-content: space-between; align-items: center;'>
+    <div style='padding: 15px; background: #f8fafc; border-radius: 8px; 
+                margin-bottom: 20px; border-left: 4px solid #1E3A5F;'>
+        <div style='display: flex; justify-content: space-between;'>
             <div>
-                <p id='current-date' style='margin: 0; font-size: 0.9em; color: #6B7280;'></p>
-                <p id='current-time' style='margin: 5px 0 0 0; font-size: 1.5em; font-weight: 700; color: #1E3A5F;'></p>
+                <p id='time' style='margin: 0; font-size: 1.5em; font-weight: bold; color: #1E3A5F;'></p>
+                <p id='date' style='margin: 5px 0 0 0; color: #6B7280;'></p>
             </div>
             <div style='text-align: right;'>
-                <p id='market-status' style='margin: 0; font-size: 1.1em; font-weight: 700; color: #10B981;'>● Marché Ouvert</p>
-                <p id='market-info' style='margin: 5px 0 0 0; font-size: 0.85em; color: #6B7280;'>Cotation en cours</p>
+                <p id='status' style='margin: 0; color: #10B981; font-weight: 600;'>Marché Ouvert</p>
             </div>
         </div>
     </div>
-    
     <script>
-    function updateClock() {
+    function update() {
         const now = new Date();
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('current-date').textContent = now.toLocaleDateString('fr-FR', options);
-        document.getElementById('current-time').textContent = now.toLocaleTimeString('fr-FR');
-        
-        const day = now.getDay();
+        document.getElementById('time').textContent = now.toLocaleTimeString('fr-FR');
+        document.getElementById('date').textContent = now.toLocaleDateString('fr-FR', 
+            {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
         const hour = now.getHours();
-        const minute = now.getMinutes();
-        const currentTime = hour + minute/60;
-        
-        let statusEl = document.getElementById('market-status');
-        let infoEl = document.getElementById('market-info');
-        
-        if (day >= 1 && day <= 5 && currentTime >= 10 && currentTime < 15.5) {
-            statusEl.innerHTML = '● Marché Ouvert';
+        const day = now.getDay();
+        const statusEl = document.getElementById('status');
+        if (day >= 1 && day <= 5 && hour >= 10 && hour < 15) {
+            statusEl.textContent = '● Marché Ouvert';
             statusEl.style.color = '#10B981';
-            infoEl.textContent = 'Cotation en cours';
         } else {
-            statusEl.innerHTML = '○ Marché Fermé';
+            statusEl.textContent = '○ Marché Fermé';
             statusEl.style.color = '#6B7280';
-            let nextOpen = new Date(now);
-            if (day === 6 || day === 0 || currentTime >= 15.5) {
-                nextOpen.setDate(now.getDate() + (1 - now.getDay() + 7) % 7 || 7);
-                nextOpen.setHours(10, 0, 0, 0);
-            } else {
-                nextOpen.setHours(10, 0, 0, 0);
-            }
-            const optionsNext = { weekday: 'long', hour: '2-digit', minute: '2-digit' };
-            infoEl.textContent = 'Prochaine ouverture: ' + nextOpen.toLocaleDateString('fr-FR', optionsNext);
         }
     }
-    
-    updateClock();
-    setInterval(updateClock, 1000);
+    update();
+    setInterval(update, 60000);
     </script>
-""", height=120)
+""", height=100)
 
-# Titre de la page
+# Titre
 st.title(f"Bienvenue sur {config.APP_NAME}")
 
-# Objectif de l'application
+# Objectif
 st.markdown(f"""
     <div style='padding: 30px; background: linear-gradient(135deg, {config.COLORS["card"]} 0%, #f8fafc 100%); 
                 border-radius: 16px; margin: 20px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08);'>
@@ -135,8 +110,8 @@ st.markdown(f"""
 
 st.divider()
 
-# Actions rapides
-st.markdown("### 🚀 Actions Rapides")
+# Actions Rapides
+st.markdown("### 🚀 Accès Rapide aux Pages")
 
 col1, col2, col3 = st.columns(3)
 
@@ -149,7 +124,7 @@ with col1:
             <h3 style='font-size: 2.5em; margin: 0;'>🧮</h3>
             <h4 style='margin: 10px 0;'>Pricing</h4>
             <p style='color: {config.COLORS["text_muted"]};'>
-                Calculez le prix théorique F₀ avec sensibilités
+                Prix théorique F₀ avec Term Structure
             </p>
         </div>
     """, unsafe_allow_html=True)
@@ -160,10 +135,10 @@ with col2:
                     border-radius: 12px; text-align: center; 
                     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
                     border-top: 4px solid {config.COLORS["success"]};'>
-            <h3 style='font-size: 2.5em; margin: 0;'>📊</h3>
-            <h4 style='margin: 10px 0;'>Indices</h4>
+            <h3 style='font-size: 2.5em; margin: 0;'>🛡️</h3>
+            <h4 style='margin: 10px 0;'>Couverture</h4>
             <p style='color: {config.COLORS["text_muted"]};'>
-                Niveaux MASI & MASI20 en temps réel
+                Calcul N* pour hedging de portefeuille
             </p>
         </div>
     """, unsafe_allow_html=True)
@@ -174,10 +149,10 @@ with col3:
                     border-radius: 12px; text-align: center; 
                     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
                     border-top: 4px solid {config.COLORS["warning"]};'>
-            <h3 style='font-size: 2.5em; margin: 0;'>📰</h3>
-            <h4 style='margin: 10px 0;'>Actualités</h4>
+            <h3 style='font-size: 2.5em; margin: 0;'>📊</h3>
+            <h4 style='margin: 10px 0;'>Risques</h4>
             <p style='color: {config.COLORS["text_muted"]};'>
-                News du marché marocain
+                VaR, P&L, marges et alertes
             </p>
         </div>
     """, unsafe_allow_html=True)
@@ -185,39 +160,24 @@ with col3:
 st.divider()
 
 # Guide BAM
-with st.expander("📚 Instruction BAM N° IN-2026-01"):
+with st.expander("📚 Instruction BAM N° IN-2026-01 — Résumé"):
     st.markdown("""
         ### 📐 Formule du Cours Théorique
         
-        **Cours théorique = S × e^((r-d)t)**
+        **F₀ = S × e^((r - d) × t)**
         
         | Variable | Signification | Source |
         |----------|---------------|--------|
         | **S** | Prix spot de l'indice | Bourse de Casablanca |
-        | **r** | Taux sans risque | BKAM |
-        | **d** | Taux de dividende | Σ(Pi × Di/Ci) |
-        | **t** | Temps (jours/360) | Tous jours inclus |
-        
-        ---
+        | **r** | Taux sans risque | BKAM (fichier Excel) |
+        | **d** | Taux de dividende | Calculé selon échéance |
+        | **t** | Temps (jours/360) | Selon maturité du future |
         
         ### 📋 Hiérarchie des Cours de Clôture
         
-        1. **Cours du fixing de clôture** (priorité)
-        2. **Dernier cours traité** (si absence de fixing)
-        3. **Cours théorique** (si absence de cours)
-        
-        ---
-        
-        ### 💰 Calcul du Taux de Dividende
-        
-        **d = Σ (Pi × Di / Ci)**
-        
-        - **i** : Actions de l'indice
-        - **Di** : Dividende par action
-        - **Ci** : Cours de l'action
-        - **Pi** : Poids dans l'indice
-        
-        ---
+        1. **Cours du fixing** (priorité)
+        2. **Dernier cours traité** (si pas de fixing)
+        3. **Cours théorique** (si pas de cours)
         
         *Conforme à l'Instruction Bank Al-Maghrib N° IN-2026-01*
     """)
