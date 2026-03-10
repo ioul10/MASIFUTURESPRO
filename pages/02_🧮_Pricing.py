@@ -52,32 +52,30 @@ st.dataframe(pd.DataFrame(constituents)[['ticker', 'nom', 'poids']], use_contain
 st.divider()
 st.subheader("💰 2. Taux de Dividende (d)")
 
-# Date d'échéance pour filtrer les dividendes
+# Date d'échéance pour information
 jours_echeance = st.slider("Échéance du future (jours)", 30, 360, 90, 30)
 date_echeance = datetime.now() + timedelta(days=jours_echeance)
 
-# Calcul du taux de dividende (avec filtrage par date)
-taux_dividende, df_details = calculer_taux_dividende_indice(constituents, date_echeance)
-
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Taux de Dividende (d)", f"{taux_dividende*100:.4f}%")
-with col2:
-    st.metric("Période", f"{jours_echeance} jours")
-with col3:
-    st.info(f"📅 Échéance: {date_echeance.strftime('%d/%m/%Y')}")
-
-with st.expander("📊 Détail des dividendes inclus"):
-    st.markdown(f"""
-        <div style='padding: 15px; background: #fffbeb; border-left: 4px solid #F59E0B; border-radius: 8px;'>
-            <p style='margin: 0; color: #92400e;'>
-                <strong>⚠️ Important :</strong> Seuls les dividendes avec date ex-dividend 
-                <strong>avant le {date_echeance.strftime('%d/%m/%Y')}</strong> sont inclus.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-    st.dataframe(df_details, use_container_width=True)
-
+# Calcul du taux de dividende (version simple sans filtrage par date pour l'instant)
+try:
+    taux_dividende, df_details = calculer_taux_dividende_indice(constituents)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Taux de Dividende (d)", f"{taux_dividende*100:.4f}%")
+    with col2:
+        st.metric("Période", f"{jours_echeance} jours")
+    with col3:
+        st.info(f"📅 Échéance: {date_echeance.strftime('%d/%m/%Y')}")
+    
+    with st.expander("📊 Détail du calcul par action"):
+        st.dataframe(df_details, use_container_width=True)
+        st.caption(f"**Résultat :** d = {taux_dividende*100:.4f}% = {taux_dividende:.6f}")
+        
+except Exception as e:
+    st.error(f"❌ Erreur de calcul du taux de dividende: {e}")
+    taux_dividende = 0.028  # Valeur par défaut
+    df_details = pd.DataFrame()
 # =============================================================================
 # SECTION 3: TAUX SANS RISQUE (r) — IMPORT FICHIER
 # =============================================================================
