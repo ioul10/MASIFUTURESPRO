@@ -1,6 +1,6 @@
 # =============================================================================
 # PAGE 2: PRICING & COUVERTURE - MASI Futures Pro
-# Version Finale - Conforme Instruction BAM N° IN-2026-01
+# Version Renouvelée - Avec Term Structure & Backtesting
 # Développeurs: OULMADANI Ilyas & ATANANE Oussama | v0.2 Beta
 # =============================================================================
 
@@ -80,18 +80,12 @@ tab_couverture, tab_beta_evolution, tab_pricing = st.tabs([
 # =============================================================================
 with tab_couverture:
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: OBJECTIF DE L'ONGLET
-    # ─────────────────────────────────────────────────────────────────────────
     st.markdown("""
         ### 🎯 Objectif
         Déterminer le nombre optimal de contrats futures MASI20 (**N***) pour couvrir 
         un portefeuille d'actions marocaines contre le risque de marché.
     """)
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 1 — CONSTITUANTS ET PONDÉRATIONS
-    # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     st.subheader("📋 1. Composition du Portefeuille MASI20")
     
@@ -105,7 +99,6 @@ with tab_couverture:
             st.session_state['edit_mode'] = not st.session_state.get('edit_mode', False)
             st.rerun()
     
-    # Préparation et affichage du DataFrame
     df_constituents = pd.DataFrame(st.session_state['constituents'])
     df_constituents['poids_pct'] = df_constituents['poids'] * 100
     
@@ -145,9 +138,6 @@ with tab_couverture:
         st.session_state['date_calcul'] = datetime.now()
         st.rerun()
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 2 — PARAMÈTRES DE COUVERTURE
-    # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     st.subheader("💰 2. Paramètres de la Couverture")
     
@@ -175,13 +165,9 @@ with tab_couverture:
         multiplicateur = config.MULTIPLICATEUR
         st.info(f"Multiplicateur : **{multiplicateur} MAD/point**")
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 3 — CALCULS STATISTIQUES
-    # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     st.subheader("🧮 3. Métriques de Risque")
     
-    # Calcul des rendements du portefeuille
     rendements_pf = np.zeros(89)
     for c in st.session_state['constituents']:
         returns = st.session_state['historique_constituents'][c['ticker']]['returns'][1:]
@@ -189,14 +175,12 @@ with tab_couverture:
     
     rendements_masi = st.session_state['historique_masi20']['returns'][1:]
     
-    # Calculs des métriques
     beta = calculer_beta(rendements_pf, rendements_masi)
     correlation = calculer_correlation(rendements_pf, rendements_masi)
     tracking_error = calculer_tracking_error(rendements_pf, rendements_masi)
     alpha = calculer_alpha(rendements_pf, rendements_masi)
     N_star = calculer_N_star(beta, valeur_portefeuille, prix_future, multiplicateur)
     
-    # Affichage des métriques
     col_b, col_c, col_te, col_a = st.columns(4)
     
     with col_b:
@@ -212,9 +196,6 @@ with tab_couverture:
         st.metric("Alpha (annualisé)", f"{alpha:+.2f}%",
                  help="Surperformance par rapport au benchmark")
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 4 — RÉSULTAT N*
-    # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     st.subheader("🎯 4. Nombre Optimal de Contrats (N*)")
     
@@ -251,9 +232,6 @@ with tab_couverture:
                 **Calcul :** `{beta:.4f} × {valeur_portefeuille:,.0f} / {A:,.0f} = {N_star:,}`
             """)
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 5 — GRAPHIQUE DE CORRÉLATION
-    # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     st.subheader("📈 5. Analyse de Corrélation")
     
@@ -287,9 +265,6 @@ with tab_couverture:
     with col_slope: st.metric("Pente", f"{slope:.4f}")
     with col_err: st.metric("Erreur Std", f"{std_err:.6f}")
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 6 — GUIDE MÉTHODOLOGIQUE COMPLET
-    # ─────────────────────────────────────────────────────────────────────────
     with st.expander("📘 Guide Complet — Couverture de Portefeuille"):
         st.markdown("""
             ### 📐 Formule de N*
@@ -342,17 +317,11 @@ with tab_couverture:
 # =============================================================================
 with tab_beta_evolution:
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: OBJECTIF
-    # ─────────────────────────────────────────────────────────────────────────
     st.markdown("""
         ### 📊 Analyse de Stabilité du Beta
         Évolution du Beta calculé en fenêtre glissante pour évaluer sa stabilité dans le temps.
     """)
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: PARAMÈTRES
-    # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     col_window, col_info = st.columns(2)
     
@@ -362,9 +331,6 @@ with tab_beta_evolution:
     with col_info:
         st.info(f"📈 Données disponibles : **90 jours**")
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: CALCUL DU BETA GLISSANT
-    # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     
     rendements_pf_total = np.zeros(89)
@@ -386,18 +352,12 @@ with tab_beta_evolution:
     
     df_rolling = pd.DataFrame({'Date': rolling_dates, 'Beta': rolling_betas, 'Corrélation': rolling_corrs})
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: AFFICHAGE DES RÉSULTATS
-    # ─────────────────────────────────────────────────────────────────────────
     col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
     with col_stat1: st.metric("Beta Actuel", f"{rolling_betas[-1]:.4f}")
     with col_stat2: st.metric("Beta Moyen", f"{np.mean(rolling_betas):.4f}")
     with col_stat3: st.metric("Beta Min", f"{np.min(rolling_betas):.4f}")
     with col_stat4: st.metric("Beta Max", f"{np.max(rolling_betas):.4f}")
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: GRAPHIQUE AVEC AXE Y FOCALISÉ [0.85 - 1.20]
-    # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     fig_beta = go.Figure()
     
@@ -415,18 +375,14 @@ with tab_beta_evolution:
     fig_beta.add_hline(y=beta_mean, line_dash="dot", line_color="#F59E0B",
                       annotation_text=f"Moyenne = {beta_mean:.4f}")
     
-    # ←←← AXE Y FOCALISÉ SUR [0.85 - 1.20] ←←←
     fig_beta.update_layout(
         title=f'Évolution du Beta — Fenêtre Glissante : {window_size} jours',
         xaxis_title='Date', yaxis_title='Beta',
-        yaxis=dict(range=[0.85, 1.20], tickformat='.3f'),  # ←←← ICI
+        yaxis=dict(range=[0.85, 1.20], tickformat='.3f'),
         height=450, template='plotly_white', hovermode='x unified'
     )
     st.plotly_chart(fig_beta, use_container_width=True)
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: INTERPRÉTATION
-    # ─────────────────────────────────────────────────────────────────────────
     beta_std = np.std(rolling_betas)
     col_interp1, col_interp2 = st.columns(2)
     
@@ -446,9 +402,6 @@ with tab_beta_evolution:
         else:
             st.warning("⚠️ Beta instable — Réévaluation fréquente conseillée")
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: GUIDE COMPLET — ÉVOLUTION DU BETA
-    # ─────────────────────────────────────────────────────────────────────────
     with st.expander("📘 Guide Complet — Évolution du Beta"):
         st.markdown("""
             ### 🔁 Comment est calculé le Beta Glissant ?
@@ -505,22 +458,17 @@ with tab_beta_evolution:
         """)
 
 # =============================================================================
-# ONGLET 3: PRICING THÉORIQUE — CONFORME INSTRUCTION BAM N° IN-2026-01
+# ONGLET 3: PRICING THÉORIQUE — VERSION RENOUVELÉE
 # =============================================================================
 with tab_pricing:
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: OBJECTIF ET FORMULE
-    # ─────────────────────────────────────────────────────────────────────────
     st.markdown("""
         ### 📐 Pricing Théorique — Instruction BAM N° IN-2026-01
-        Calcul du cours théorique d'un contrat future sur indice selon la formule officielle :
-        
-        **Cours théorique = S × e^((r - d) × t)**
+        Calcul du cours théorique avec **Term Structure** (multi-échéances) et **Backtesting**
     """)
     
     # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 1 — DONNÉES OFFICIELLES MASI20
+    # SECTION 1: DONNÉES OFFICIELLES MASI20
     # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     st.subheader("🔄 1. Données Officielles MASI20")
@@ -539,7 +487,7 @@ with tab_pricing:
     constituents_pricing = st.session_state['constituents_pricing']
     
     # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 2 — CALCUL DU TAUX DE DIVIDENDE (Formule BAM)
+    # SECTION 2: CALCUL DU TAUX DE DIVIDENDE
     # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     st.subheader("💰 2. Taux de Dividende — Formule BAM")
@@ -560,7 +508,7 @@ with tab_pricing:
         st.caption(f"**Résultat :** d = {taux_dividende*100:.4f}% = {taux_dividende:.6f}")
     
     # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 3 — PARAMÈTRES DE PRICING
+    # SECTION 3: PARAMÈTRES DE PRICING
     # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     st.subheader("🔧 3. Paramètres de Valorisation")
@@ -577,14 +525,204 @@ with tab_pricing:
                            value=taux_bkam * 100, step=0.1, format="%.2f") / 100
     
     with col_t:
-        jours = st.number_input("Jours jusqu'échéance", min_value=1, max_value=365, value=90, step=1)
-        t = jours / 360  # Base 360 selon BAM
+        jours = st.number_input("Jours jusqu'échéance de référence", min_value=1, max_value=365, value=90, step=1)
+        t = jours / 360
     
     # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 4 — CALCUL DU PRIX THÉORIQUE
+    # SECTION 4: TERM STRUCTURE — PRIX PAR ÉCHÉANCE (NOUVEAU)
     # ─────────────────────────────────────────────────────────────────────────
     st.divider()
-    st.subheader("📊 4. Prix Théorique du Future")
+    st.subheader("📊 Term Structure — Prix Théoriques par Échéance")
+    
+    # Calcul pour différentes maturités
+    echeances = {
+        '1 mois': 30,
+        '3 mois': 90,
+        '6 mois': 180,
+        '12 mois': 360
+    }
+    
+    prix_theoriques = {}
+    bases = {}
+    
+    for nom, nb_jours in echeances.items():
+        t_jours = nb_jours / 360
+        F0 = spot * np.exp((r - taux_dividende) * t_jours)
+        prix_theoriques[nom] = F0
+        bases[nom] = F0 - spot
+    
+    # Affichage des métriques
+    col1, col2, col3, col4 = st.columns(4)
+    
+    for col, (nom, F0) in zip([col1, col2, col3, col4], prix_theoriques.items()):
+        base = bases[nom]
+        couleur = "#10B981" if base > 0 else "#EF4444"
+        
+        col.markdown(f"""
+            <div style='padding: 20px; background: white; border-radius: 12px; 
+                        text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                        border-left: 4px solid {couleur};'>
+                <p style='margin: 0; font-size: 0.9em; color: #6B7280;'>{nom}</p>
+                <p style='margin: 10px 0 0 0; font-size: 2em; font-weight: 700; color: {couleur};'>
+                    {F0:,.2f}
+                </p>
+                <p style='margin: 5px 0 0 0; font-size: 0.85em; color: {couleur};'>
+                    Base: {base:+,.2f} pts
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Graphique de la Term Structure
+    st.divider()
+    st.markdown("### 📈 Courbe des Prix Théoriques")
+    
+    fig_term = go.Figure()
+    
+    fig_term.add_trace(go.Scatter(
+        x=list(echeances.keys()),
+        y=list(prix_theoriques.values()),
+        mode='lines+markers',
+        name='Prix théorique',
+        line=dict(color=config.COLORS['primary'], width=3),
+        marker=dict(size=10),
+        text=[f"{F0:,.2f} pts" for F0 in prix_theoriques.values()],
+        textposition='top center'
+    ))
+    
+    # Ligne du spot
+    fig_term.add_hline(y=spot, line_dash="dash", line_color="#10B981", 
+                      annotation_text=f'Spot = {spot:,.2f}', annotation_position="top right")
+    
+    fig_term.update_layout(
+        title='Structure par Terme des Prix Futures',
+        xaxis_title='Échéance',
+        yaxis_title='Prix (points)',
+        height=400,
+        template='plotly_white',
+        showlegend=False,
+        hovermode='x unified'
+    )
+    
+    st.plotly_chart(fig_term, use_container_width=True)
+    
+    # Interprétation
+    base_3m = bases['3 mois']
+    if base_3m > 0:
+        st.success(f"📈 **Contango** : La courbe est ascendante (r > d). Le marché anticipe une hausse des prix.")
+    elif base_3m < 0:
+        st.warning(f"📉 **Backwardation** : La courbe est descendante (d > r). Les dividendes dominent le coût de portage.")
+    else:
+        st.info("⚖️ **Équilibre** : r ≈ d, prix constants sur toutes les échéances.")
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 5: BACKTESTING — THÉORIQUE VS RÉEL (NOUVEAU)
+    # ─────────────────────────────────────────────────────────────────────────
+    st.divider()
+    st.subheader("🧪 Backtesting — Validation du Modèle")
+    
+    st.markdown("""
+        Comparaison des prix théoriques avec les prix de marché historiques pour valider la précision du modèle.
+    """)
+    
+    # Simulation de backtesting (données mockées pour l'exemple)
+    # Dans la version finale, il faudra scraper les prix réels des futures
+    
+    np.random.seed(42)
+    jours_backtest = 60
+    dates_backtest = [datetime.now() - timedelta(days=i) for i in range(jours_backtest)][::-1]
+    
+    # Prix spot simulés
+    spots_simules = spot * np.exp(np.cumsum(np.random.normal(0, 0.01, jours_backtest)))
+    
+    # Prix théoriques simulés
+    prix_theo_simules = spots_simules * np.exp((r - taux_dividende) * (90/360))
+    
+    # Prix de marché simulés (avec bruit)
+    prix_marche_simules = prix_theo_simules * (1 + np.random.normal(0, 0.001, jours_backtest))
+    
+    # Erreurs
+    erreurs = prix_theo_simules - prix_marche_simules
+    erreurs_abs = np.abs(erreurs)
+    erreurs_rel = np.abs(erreurs / prix_marche_simules) * 100
+    
+    # Métriques
+    mae = np.mean(erreurs_abs)
+    mape = np.mean(erreurs_rel)
+    r2 = 1 - np.sum(erreurs**2) / np.sum((prix_marche_simules - np.mean(prix_marche_simules))**2)
+    
+    col_mae, col_mape, col_r2 = st.columns(3)
+    
+    with col_mae:
+        st.metric("MAE (Erreur Absolue Moyenne)", f"{mae:.2f} pts",
+                 help="Erreur moyenne entre théorique et marché")
+    
+    with col_mape:
+        st.metric("MAPE (Erreur Relative)", f"{mape:.3f}%",
+                 help="Pourcentage d'erreur moyen")
+    
+    with col_r2:
+        st.metric("R² (Coefficient de détermination)", f"{r2:.6f}",
+                 help="Qualité de l'ajustement (1 = parfait)")
+    
+    # Interprétation
+    if mape < 0.5:
+        st.success("✅ **Modèle très précis** : L'erreur relative est inférieure à 0.5%")
+    elif mape < 1.5:
+        st.info("ℹ️ **Modèle acceptable** : L'erreur relative est entre 0.5% et 1.5%")
+    else:
+        st.warning("⚠️ **Modèle à recalibrer** : L'erreur relative dépasse 1.5%")
+    
+    # Graphique de backtesting
+    st.divider()
+    fig_backtest = go.Figure()
+    
+    fig_backtest.add_trace(go.Scatter(
+        x=dates_backtest,
+        y=prix_theo_simules,
+        mode='lines',
+        name='Prix théorique',
+        line=dict(color=config.COLORS['primary'], width=2)
+    ))
+    
+    fig_backtest.add_trace(go.Scatter(
+        x=dates_backtest,
+        y=prix_marche_simules,
+        mode='lines',
+        name='Prix marché',
+        line=dict(color='#F59E0B', width=2, dash='dash')
+    ))
+    
+    fig_backtest.add_trace(go.Scatter(
+        x=dates_backtest,
+        y=erreurs,
+        mode='lines',
+        name='Erreur',
+        line=dict(color='#EF4444', width=1),
+        yaxis='y2'
+    ))
+    
+    fig_backtest.update_layout(
+        title='Backtesting — Prix Théorique vs Prix de Marché (60 jours)',
+        xaxis_title='Date',
+        yaxis_title='Prix (points)',
+        yaxis2=dict(title='Erreur (pts)', overlaying='y', side='right'),
+        height=500,
+        template='plotly_white',
+        hovermode='x unified'
+    )
+    
+    st.plotly_chart(fig_backtest, use_container_width=True)
+    
+    st.caption("""
+        **Note :** Les données de marché sont simulées pour cette démonstration. 
+        Dans la version finale, les prix réels des futures seront scrapés depuis la Bourse de Casablanca.
+    """)
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 6: PRIX THÉORIQUE DE RÉFÉRENCE
+    # ─────────────────────────────────────────────────────────────────────────
+    st.divider()
+    st.subheader("📊 Prix Théorique de Référence")
     
     F0 = calculer_prix_theorique_future_bam(spot, r, taux_dividende, t)
     base = calculer_base_future(F0, spot)
@@ -630,7 +768,7 @@ with tab_pricing:
     """)
     
     # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 5 — RÉFÉRENCES RÉGLEMENTAIRES
+    # SECTION 7: RÉFÉRENCES RÉGLEMENTAIRES
     # ─────────────────────────────────────────────────────────────────────────
     st.divider()
     st.subheader("📚 Références Réglementaires")
@@ -671,7 +809,7 @@ with tab_pricing:
     """)
     
     # ─────────────────────────────────────────────────────────────────────────
-    # NIVEAU 5: SECTION 6 — GUIDE COMPLET — PRICING THÉORIQUE BAM
+    # SECTION 8: GUIDE COMPLET
     # ─────────────────────────────────────────────────────────────────────────
     with st.expander("📘 Guide Complet — Pricing Théorique BAM"):
         st.markdown("""
@@ -696,6 +834,28 @@ with tab_pricing:
             | **Di** | Dividende annuel par action i |
             | **Ci** | Cours actuel de l'action i |
             
+            ### 📊 Term Structure
+            
+            La **structure par terme** montre l'évolution des prix théoriques selon la maturité :
+            
+            - **Contango** : Courbe ascendante (r > d) → Marché normal
+            - **Backwardation** : Courbe descendante (d > r) → Dividendes élevés
+            - Permet d'identifier les échéances attractives
+            
+            ### 🧪 Backtesting
+            
+            Le **backtesting** compare les prix théoriques avec les prix de marché :
+            
+            **Métriques de validation :**
+            - **MAE** : Erreur absolue moyenne (en points)
+            - **MAPE** : Erreur relative moyenne (en %)
+            - **R²** : Qualité de l'ajustement (1 = parfait)
+            
+            **Interprétation :**
+            - MAPE < 0.5% → Modèle très précis ✅
+            - MAPE 0.5-1.5% → Modèle acceptable ⚠️
+            - MAPE > 1.5% → Modèle à recalibrer ❌
+            
             ### 🎓 Fondement : Absence d'Arbitrage
             
             > À l'équilibre, aucun trader ne peut réaliser un profit sans risque 
@@ -704,15 +864,7 @@ with tab_pricing:
             **Stratégies d'arbitrage :**
             - Si Prix Marché > Cours Théorique → Vendre Future + Acheter Spot
             - Si Prix Marché < Cours Théorique → Acheter Future + Vendre Spot
-            - À l'équilibre : Prix Marché = Cours Théorique → Aucun arbitrage possible
-            
-            ### 📊 Interprétation de la Base (F₀ - S)
-            
-            | Signe | Nom | Interprétation |
-            |-------|-----|----------------|
-            | Base > 0 | **Contango** | Future > Spot (r > d) |
-            | Base < 0 | **Backwardation** | Future < Spot (d > r) |
-            | Base ≈ 0 | **Équilibre** | Future ≈ Spot |
+            - À l'équilibre : Prix Marché = Cours Théorique
             
             ### ⚠️ Limites
             
@@ -720,14 +872,16 @@ with tab_pricing:
             - Dividendes estimés, pas garantis
             - Taux sans risque variable
             - Liquidité modérée sur MASI20 futures
+            - Données historiques limitées pour le backtesting
             
             ### 💡 Bonnes Pratiques
             
             1. Actualiser régulièrement r, d et S
-            2. Comparer avec le prix marché comme benchmark
-            3. Intégrer les coûts de transaction dans l'analyse
-            4. Surveiller la base pour détecter anomalies
-            5. Documenter les hypothèses pour traçabilité
+            2. Utiliser la Term Structure pour choisir l'échéance optimale
+            3. Valider régulièrement le modèle via backtesting
+            4. Comparer avec le prix marché comme benchmark
+            5. Intégrer les coûts de transaction dans l'analyse
+            6. Documenter les hypothèses pour traçabilité
         """)
 
 # =============================================================================
