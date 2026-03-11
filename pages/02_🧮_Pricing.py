@@ -12,16 +12,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
 # Imports métiers
-from utils.calculations import (
-    calculer_prix_theorique_future_bam,
-    calculer_base_future,
-    calculer_cout_portage,
-    calculer_taux_dividende_indice,
-    get_taux_zc,
-    calcul_term_structure,
-    backtesting_complet,
-    detecter_arbitrage
-)
+from utils.calculations import (calculer_prix_theorique_future_bam, calculer_base_future, calculer_cout_portage, calculer_taux_dividende_indice, get_taux_zc, calcul_term_structure, backtesting_complet, detecter_arbitrage)
 from utils.data_loader import (
     charger_taux_zc,
     charger_dividendes,
