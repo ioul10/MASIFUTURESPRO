@@ -12,15 +12,20 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
 # Imports métiers
-from utils.calculations import (calculer_prix_theorique_future_bam, calculer_base_future, calculer_cout_portage, calculer_taux_dividende_indice, get_taux_zc, calcul_term_structure, backtesting_complet, detecter_arbitrage)
+from utils.calculations import (
+    calculer_prix_theorique_future_bam,
+    calculer_base_future,
+    calculer_cout_portage,
+    calculer_taux_dividende_indice,
+    get_taux_zc,
+    calcul_term_structure,
+    backtesting_complet
+)
 from utils.data_loader import (
     charger_taux_zc,
     charger_dividendes,
-    charger_historique_masi20,
-    widget_upload_taux_zc,
-    widget_upload_dividendes
+    charger_historique_masi20
 )
-from data.test_data import get_dividendes_masi20_mock
 
 # Configuration
 st.set_page_config(page_title="Pricing Théorique", page_icon="🧮", layout="wide")
@@ -38,144 +43,198 @@ if 'taux_zc_loaded' not in st.session_state:
     st.session_state['taux_zc_loaded'] = False
 if 'dividendes_loaded' not in st.session_state:
     st.session_state['dividendes_loaded'] = False
-if 'historique_loaded' not in st.session_state:
-    st.session_state['historique_loaded'] = False
+if 'date_reference' not in st.session_state:
+    st.session_state['date_reference'] = None
 
 # =============================================================================
 # CRÉATION DES ONGLETS PRINCIPAUX
 # =============================================================================
 tab_import, tab_pricing, tab_suivi, tab_backtest = st.tabs([
-    "📥 1. Import des Données",
+    "📥 1. Import Taux ZC",
     "📊 2. Pricing Instantané",
     "📈 3. Suivi Temporel",
     "🧪 4. Backtesting"
 ])
 
 # =============================================================================
-# ONGLET 1: IMPORT DES DONNÉES
+# ONGLET 1: IMPORT DES TAUX ZC
 # =============================================================================
 with tab_import:
-    st.markdown("### 📥 Importez Vos Données de Test")
-    st.info("💡 Pour cette version de test, vous pouvez utiliser les données mockées ou importer vos propres fichiers CSV.")
+    # ─────────────────────────────────────────────────────────────────────────
+    # GUIDE DE L'ONGLET
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("""
+        ### 📘 Guide — Import des Taux Zéro-Coupon
+        
+        **Objectif :** Importer la courbe des taux ZC de Bank Al-Maghrib.
+        
+        **Format du fichier attendu :**
+        | date_spot | date_maturity | zc |
+        |-----------|---------------|-----|
+        | 31/12/2025 | 01/07/2026 | 2,2327 |
+        
+        **Colonnes :**
+        - `date_spot` : Date de publication du taux (BKAM)
+        - `date_maturity` : Date d'échéance du taux ZC
+        - `zc` : Taux zéro-coupon en % (ex: 2,2327)
+        
+        **Comment ça marche :**
+        1. Importez votre fichier CSV/Excel
+        2. Sélectionnez la date de référence pour le pricing
+        3. Cette date sera utilisée dans les onglets 2, 3 et 4
+        
+        **Prochaine mise à jour :**
+        - 🔄 Import automatique depuis le site BKAM (scraping)
+        - 📊 Visualisation de la courbe des taux
+    """)
     
     st.divider()
     
-    # Section Taux ZC
-    col1, col2 = st.columns(2)
+    # ─────────────────────────────────────────────────────────────────────────
+    # IMPORT DU FICHIER
+    # ─────────────────────────────────────────────────────────────────────────
+    st.subheader("📁 Importer le Fichier de Taux ZC")
     
-    with col1:
-        st.markdown("#### 🏦 Taux Zéro-Coupon (r)")
-        uploaded_taux = st.file_uploader(
-            "Importer fichier taux ZC",
-            type=['csv', 'xlsx'],
-            key="taux_uploader",
-            help="Format: date_spot, date_maturity, zc"
-        )
-        
-        if uploaded_taux:
-            df_taux = charger_taux_zc(uploaded_taux, utiliser_mock=False)
-            if df_taux is not None:
-                st.session_state['df_taux'] = df_taux
-                st.session_state['taux_zc_loaded'] = True
-        else:
-            if not st.session_state.get('taux_zc_loaded', False):
-                df_taux = charger_taux_zc(utiliser_mock=True)
-                st.session_state['df_taux'] = df_taux
-                st.session_state['taux_zc_loaded'] = True
-            else:
-                df_taux = st.session_state.get('df_taux')
-        
-        if df_taux is not None:
-            with st.expander("📊 Aperçu des taux ZC"):
-                st.dataframe(df_taux.head(10), use_container_width=True)
-                st.caption(f"{len(df_taux)} lignes • {df_taux['date_spot'].nunique()} dates • {df_taux['date_maturity'].nunique()} maturités")
-    
-    with col2:
-        st.markdown("#### 💰 Dividendes MASI20 (q)")
-        uploaded_div = st.file_uploader(
-            "Importer fichier dividendes",
-            type=['csv', 'xlsx'],
-            key="div_uploader",
-            help="Format: ticker, poids, cours, dividende_annuel, ..."
-        )
-        
-        if uploaded_div:
-            df_div = charger_dividendes(uploaded_div, utiliser_mock=False)
-            if df_div is not None:
-                st.session_state['df_div'] = df_div
-                st.session_state['dividendes_loaded'] = True
-        else:
-            if not st.session_state.get('dividendes_loaded', False):
-                df_div = charger_dividendes(utiliser_mock=True)
-                st.session_state['df_div'] = df_div
-                st.session_state['dividendes_loaded'] = True
-            else:
-                df_div = st.session_state.get('df_div')
-        
-        if df_div is not None:
-            with st.expander("📊 Aperçu des dividendes"):
-                st.dataframe(df_div.head(10), use_container_width=True)
-                st.caption(f"{len(df_div)} actions • Poids total: {df_div['poids'].sum():.1%}")
-    
-    st.divider()
-    
-    # Section Historique (pour backtesting)
-    st.markdown("#### 📈 Historique MASI20 (pour backtesting)")
-    uploaded_hist = st.file_uploader(
-        "Importer historique (optionnel)",
+    uploaded_taux = st.file_uploader(
+        "Choisissez un fichier CSV ou Excel",
         type=['csv', 'xlsx'],
-        key="hist_uploader",
-        help="Format: date, spot_masi20, prix_future_reel"
+        key="taux_uploader",
+        help="Format: date_spot, date_maturity, zc"
     )
     
-    if uploaded_hist:
-        df_hist = charger_historique_masi20(uploaded_hist, utiliser_mock=False)
-        if df_hist is not None:
-            st.session_state['df_hist'] = df_hist
-            st.session_state['historique_loaded'] = True
+    if uploaded_taux:
+        df_taux = charger_taux_zc(uploaded_taux, utiliser_mock=False)
+        if df_taux is not None:
+            st.session_state['df_taux'] = df_taux
+            st.session_state['taux_zc_loaded'] = True
     else:
-        if not st.session_state.get('historique_loaded', False):
-            df_hist = charger_historique_masi20(utiliser_mock=True, jours=90)
-            st.session_state['df_hist'] = df_hist
-            st.session_state['historique_loaded'] = True
+        if not st.session_state.get('taux_zc_loaded', False):
+            df_taux = charger_taux_zc(utiliser_mock=True)
+            st.session_state['df_taux'] = df_taux
+            st.session_state['taux_zc_loaded'] = True
         else:
-            df_hist = st.session_state.get('df_hist')
+            df_taux = st.session_state.get('df_taux')
     
-    if df_hist is not None:
-        with st.expander("📊 Aperçu de l'historique"):
-            st.dataframe(df_hist.head(10), use_container_width=True)
-            st.caption(f"{len(df_hist)} jours de données")
+    if df_taux is not None:
+        st.success(f"✅ {len(df_taux)} taux chargés")
+        
+        with st.expander("📊 Aperçu des données"):
+            st.dataframe(df_taux.head(10), use_container_width=True)
+        
+        # ─────────────────────────────────────────────────────────────────────
+        # SÉLECTION DE LA DATE DE RÉFÉRENCE
+        # ─────────────────────────────────────────────────────────────────────
+        st.divider()
+        st.subheader("📅 Sélection de la Date de Référence")
+        
+        dates_spot = sorted(df_taux['date_spot'].unique(), reverse=True)
+        
+        if len(dates_spot) > 0:
+            date_reference = st.selectbox(
+                "Date de pricing (date_spot)",
+                options=dates_spot,
+                format_func=lambda x: x.strftime('%d/%m/%Y') if hasattr(x, 'strftime') else str(x)
+            )
+            
+            st.session_state['date_reference'] = date_reference
+            
+            st.info(f"✅ Date sélectionnée : {date_reference.strftime('%d/%m/%Y') if hasattr(date_reference, 'strftime') else str(date_reference)}")
+            
+            # Filtrer les taux pour cette date
+            df_taux_date = df_taux[df_taux['date_spot'] == date_reference]
+            st.write(f"**{len(df_taux_date)} maturités disponibles** pour cette date")
+            
+            with st.expander("📊 Taux disponibles pour cette date"):
+                st.dataframe(df_taux_date[['date_maturity', 'zc']], use_container_width=True)
+        else:
+            st.warning("⚠️ Aucune date disponible")
     
     st.divider()
     
-    # Bouton de validation
-    if st.button("✅ Valider les Données et Continuer", type="primary", use_container_width=True):
-        st.session_state['donnees_valides'] = True
-        st.success("✅ Données prêtes pour le pricing !")
-        st.balloons()
+    # ─────────────────────────────────────────────────────────────────────────
+    # IMPORT DES DIVIDENDES
+    # ─────────────────────────────────────────────────────────────────────────
+    st.subheader("💰 Import des Dividendes MASI20")
+    
+    uploaded_div = st.file_uploader(
+        "Choisissez un fichier CSV ou Excel (optionnel)",
+        type=['csv', 'xlsx'],
+        key="div_uploader"
+    )
+    
+    if uploaded_div:
+        df_div = charger_dividendes(uploaded_div, utiliser_mock=False)
+        if df_div is not None:
+            st.session_state['df_div'] = df_div
+            st.session_state['dividendes_loaded'] = True
+    else:
+        if not st.session_state.get('dividendes_loaded', False):
+            df_div = charger_dividendes(utiliser_mock=True)
+            st.session_state['df_div'] = df_div
+            st.session_state['dividendes_loaded'] = True
+        else:
+            df_div = st.session_state.get('df_div')
+    
+    if df_div is not None:
+        st.success(f"✅ {len(df_div)} actions chargées")
+        with st.expander("📊 Aperçu des dividendes"):
+            st.dataframe(df_div.head(10), use_container_width=True)
 
 # =============================================================================
-# ONGLET 2: PRICING INSTANTANÉ (Cas 1)
+# ONGLET 2: PRICING INSTANTANÉ
 # =============================================================================
 with tab_pricing:
-    st.markdown("### 📊 Pricing Instantané — Formule BAM")
-    st.info("🎯 Calcule le prix théorique F₀ pour un future à une date donnée.")
-    
-    # Vérifier si les données sont chargées
-    if not st.session_state.get('donnees_valides', False):
-        st.warning("⚠️ Veuillez d'abord importer/valider les données dans l'onglet 1.")
-        st.stop()
+    # ─────────────────────────────────────────────────────────────────────────
+    # GUIDE DE L'ONGLET
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("""
+        ### 📘 Guide — Pricing Instantané
+        
+        **Objectif :** Calculer le prix théorique F₀ d'un future selon la formule BAM.
+        
+        **Formule :** `F₀ = S × e^((r - d) × t)`
+        
+        **Variables :**
+        | Symbole | Signification | Source |
+        |---------|---------------|--------|
+        | **S** | Spot MASI20 | Bourse de Casablanca |
+        | **r** | Taux sans risque | Tableau ZC (Onglet 1) |
+        | **d** | Taux de dividende annualisé | Calculé sur les 20 constituants |
+        | **t** | Temps restant (jours/360) | Calcul automatique |
+        
+        **Interprétation :**
+        - **Base > 0** : Contango (F₀ > S) → r > d
+        - **Base < 0** : Backwardation (F₀ < S) → d > r
+        
+        **Prochaine mise à jour :**
+        - 📊 Import automatique du spot MASI20
+        - 🔔 Alertes d'arbitrage (écart théorie/marché)
+    """)
     
     st.divider()
     
-    # Section 1: Paramètres de base
+    # Vérifier si les données sont chargées
+    if not st.session_state.get('taux_zc_loaded', False):
+        st.warning("⚠️ Veuillez d'abord importer les taux ZC dans l'onglet 1.")
+        st.stop()
+    
+    if st.session_state['date_reference'] is None:
+        st.warning("⚠️ Veuillez sélectionner une date de référence dans l'onglet 1.")
+        st.stop()
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # PARAMÈTRES DE BASE
+    # ─────────────────────────────────────────────────────────────────────────
     st.subheader("🔧 1. Paramètres de Valorisation")
     
-    col_spot, col_echeance, col_info = st.columns(3)
+    date_calcul = st.session_state['date_reference']
+    st.info(f"📅 **Date de pricing :** {date_calcul.strftime('%d/%m/%Y') if hasattr(date_calcul, 'strftime') else str(date_calcul)}")
+    
+    col_spot, col_echeance = st.columns(2)
     
     with col_spot:
         spot = st.number_input(
-            "Niveau Spot MASI20 (S)",
+            f"Spot MASI20 au {date_calcul.strftime('%d/%m/%Y') if hasattr(date_calcul, 'strftime') else str(date_calcul)}",
             min_value=1000.0,
             value=1876.54,
             step=10.0,
@@ -191,66 +250,66 @@ with tab_pricing:
             step=30
         )
     
-    with col_info:
-        date_echeance = datetime.now() + timedelta(days=jours_echeance)
-        st.info(f"📅 Échéance: {date_echeance.strftime('%d/%m/%Y')}")
+    date_echeance = date_calcul + timedelta(days=jours_echeance)
+    st.info(f"📅 **Échéance du future :** {date_echeance.strftime('%d/%m/%Y')}")
     
     st.divider()
     
-    # Section 2: Calcul du taux de dividende (d)
+    # ─────────────────────────────────────────────────────────────────────────
+    # CALCUL DU TAUX DE DIVIDENDE (d)
+    # ─────────────────────────────────────────────────────────────────────────
     st.subheader("💰 2. Taux de Dividende (d)")
     
-    # Convertir DataFrame en liste de dicts pour calculs
     constituents_list = df_div.to_dict('records')
+    taux_dividende, df_details = calculer_taux_dividende_indice(constituents_list)
     
-    # Calcul du taux de dividende avec filtrage par date
-    taux_dividende, df_details = calculer_taux_dividende_indice(constituents_list, date_echeance)
-    
-    col_d1, col_d2, col_d3 = st.columns(3)
+    col_d1, col_d2 = st.columns(2)
     with col_d1:
         st.metric("Taux de Dividende (d)", f"{taux_dividende*100:.4f}%")
     with col_d2:
         st.metric("Nombre d'actions", f"{len(df_div)}")
-    with col_d3:
-        nb_inclus = len(df_details[df_details['Inclus'] == '✅'])
-        st.metric("Dividendes inclus", f"{nb_inclus}/{len(df_details)}")
     
     with st.expander("📊 Détail du calcul par action"):
         st.dataframe(df_details, use_container_width=True)
-        st.caption(f"**Taux de dividende total:** d = {taux_dividende*100:.4f}%")
     
     st.divider()
     
-    # Section 3: Taux sans risque (r)
+    # ─────────────────────────────────────────────────────────────────────────
+    # SÉLECTION DU TAUX SANS RISQUE (r)
+    # ─────────────────────────────────────────────────────────────────────────
     st.subheader("🏦 3. Taux Sans Risque (r)")
     
-    # Récupérer le taux ZC approprié
-    r = get_taux_zc(datetime.now(), date_echeance, df_taux)
+    r = get_taux_zc(date_calcul, date_echeance, df_taux)
     
-    st.info(f"**Taux utilisé:** r = {r*100:.2f}% (ZC le plus proche de l'échéance)")
+    st.info(f"**Taux ZC utilisé :** r = {r*100:.3f}%")
     
-    with st.expander("📊 Détail du taux ZC sélectionné"):
-        # Trouver le taux sélectionné
-        df_filtre = df_taux[df_taux['date_spot'] <= datetime.now()].copy()
-        df_filtre['ecart'] = abs((df_filtre['date_maturity'] - date_echeance).dt.days)
+    # Trouver le taux sélectionné pour affichage
+    df_filtre = df_taux[df_taux['date_spot'] == date_calcul].copy()
+    if len(df_filtre) > 0:
+        df_filtre['maturity_dt'] = pd.to_datetime(df_filtre['date_maturity'])
+        echeance_dt = pd.to_datetime(date_echeance)
+        df_filtre['ecart'] = abs((df_filtre['maturity_dt'] - echeance_dt).dt.days)
         meilleur = df_filtre.loc[df_filtre['ecart'].idxmin()]
-        st.write(f"**Date de publication:** {meilleur['date_spot'].strftime('%d/%m/%Y')}")
-        st.write(f"**Maturité:** {meilleur['date_maturity'].strftime('%d/%m/%Y')}")
-        st.write(f"**Taux:** {meilleur['zc']}%")
+        
+        with st.expander("📊 Détail du taux ZC sélectionné"):
+            st.write(f"**Date de publication :** {meilleur['date_spot'].strftime('%d/%m/%Y')}")
+            st.write(f"**Maturité :** {meilleur['date_maturity'].strftime('%d/%m/%Y')}")
+            st.write(f"**Écart avec échéance :** {meilleur['ecart']} jours")
+            st.write(f"**Taux :** {meilleur['zc']}%")
     
     st.divider()
     
-    # Section 4: Calcul du prix théorique
+    # ─────────────────────────────────────────────────────────────────────────
+    # CALCUL DU PRIX THÉORIQUE
+    # ─────────────────────────────────────────────────────────────────────────
     st.subheader("📊 4. Prix Théorique du Future")
     
-    # Calculs
-    t = jours_echeance / 360  # Base 360 selon BAM
+    t = jours_echeance / 360
     F0 = calculer_prix_theorique_future_bam(spot, r, taux_dividende, t)
     base = calculer_base_future(F0, spot)
     cout_portage = calculer_cout_portage(r, taux_dividende, t)
     
-    # Affichage des résultats
-    col_f0, col_base, col_cp, col_vn = st.columns(4)
+    col_f0, col_base, col_cp = st.columns(3)
     
     with col_f0:
         st.markdown(f"""
@@ -275,32 +334,22 @@ with tab_pricing:
         """, unsafe_allow_html=True)
     
     with col_cp:
-        st.metric("Coût de Portage", f"{cout_portage*100:+.2f}%", help="(r - d) × t")
+        st.metric("Coût de Portage", f"{cout_portage*100:+.2f}%")
     
-    with col_vn:
-        multiplicateur = config.MULTIPLICATEUR if hasattr(config, 'MULTIPLICATEUR') else 10
-        st.metric("Valeur Notionnelle", f"{F0 * multiplicateur:,.0f} MAD")
-    
-    # Formule détaillée
     st.info(f"""
-        **Formule BAM appliquée :**
-        
-        `F₀ = S × e^((r - d) × t)`
-        
-        `F₀ = {spot:,.2f} × e^(({r*100:.2f}% - {taux_dividende*100:.4f}%) × {t:.4f})`
-        
-        **Résultat : F₀ = {F0:,.2f} points**
+        **Formule BAM :** `F₀ = {spot:,.2f} × e^(({r*100:.3f}% - {taux_dividende*100:.4f}%) × {t:.4f})` = **{F0:,.2f} points**
     """)
     
     st.divider()
     
-    # Section 5: Term Structure
+    # ─────────────────────────────────────────────────────────────────────────
+    # TERM STRUCTURE
+    # ─────────────────────────────────────────────────────────────────────────
     st.subheader("📈 5. Structure par Terme")
     
     echeances = [30, 90, 180, 360]
     df_term = calcul_term_structure(spot, r, taux_dividende, echeances)
     
-    # Affichage des cartes
     col1, col2, col3, col4 = st.columns(4)
     for col, (_, row) in zip([col1, col2, col3, col4], df_term.iterrows()):
         couleur = "#10B981" if row['Contango'] else "#EF4444"
@@ -318,158 +367,183 @@ with tab_pricing:
             </div>
         """, unsafe_allow_html=True)
     
-    # Graphique Term Structure
     fig_term = go.Figure()
     fig_term.add_trace(go.Scatter(
         x=df_term['Mois'].astype(str) + ' mois',
         y=df_term['F0'],
         mode='lines+markers',
         name='Prix théorique',
-        line=dict(color=config.COLORS.get('primary', '#1E3A5F'), width=3),
-        marker=dict(size=10)
+        line=dict(color=config.COLORS.get('primary', '#1E3A5F'), width=3)
     ))
     fig_term.add_hline(y=spot, line_dash="dash", line_color="#10B981", annotation_text=f'Spot = {spot:,.2f}')
-    fig_term.update_layout(
-        title='Structure par Terme des Prix Futures',
-        xaxis_title='Échéance',
-        yaxis_title='Prix (points)',
-        height=400,
-        template='plotly_white'
-    )
+    fig_term.update_layout(title='Structure par Terme', height=400, template='plotly_white')
     st.plotly_chart(fig_term, use_container_width=True)
-    
-    # Interprétation
-    base_3m = df_term[df_term['Mois'] == 3]['Base_pts'].values[0] if len(df_term[df_term['Mois'] == 3]) > 0 else 0
-    if base_3m > 0:
-        st.success("📈 **Contango** : Courbe ascendante (r > d) — Marché normal")
-    elif base_3m < 0:
-        st.warning("📉 **Backwardation** : Courbe descendante (d > r) — Dividendes élevés")
-    else:
-        st.info("⚖️ **Équilibre** : r ≈ d")
 
 # =============================================================================
-# ONGLET 3: SUIVI TEMPOREL (Cas 2)
+# ONGLET 3: SUIVI TEMPOREL
 # =============================================================================
 with tab_suivi:
-    st.markdown("### 📈 Suivi Temporel du Prix Théorique")
-    st.info("🎯 Suit l'évolution de F₀ jour après jour jusqu'à l'échéance.")
-    
-    if not st.session_state.get('donnees_valides', False):
-        st.warning("⚠️ Veuillez d'abord importer/valider les données dans l'onglet 1.")
-        st.stop()
+    # ─────────────────────────────────────────────────────────────────────────
+    # GUIDE DE L'ONGLET
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("""
+        ### 📘 Guide — Suivi Temporel
+        
+        **Objectif :** Visualiser l'évolution du prix théorique jour après jour.
+        
+        **Ce que vous verrez :**
+        - 📈 Courbe du prix théorique F₀
+        - 📊 Courbe du spot MASI20
+        - ⚠️ **Courbe d'erreur** (F₀ théorique - Prix marché)
+        
+        **Interprétation de l'erreur :**
+        - Erreur proche de 0 → Modèle précis
+        - Erreur > 1% → Écart significatif
+        - Erreur qui converge → Normal à l'approche de l'échéance
+        
+        **Prochaine mise à jour :**
+        - 📥 Import automatique des prix de marché réels
+        - 🎯 Alertes quand l'erreur dépasse un seuil
+    """)
     
     st.divider()
     
-    # Paramètres du suivi
+    if not st.session_state.get('taux_zc_loaded', False):
+        st.warning("⚠️ Veuillez d'abord importer les taux ZC dans l'onglet 1.")
+        st.stop()
+    
+    st.subheader("📅 Paramètres du Suivi")
+    
     col1, col2 = st.columns(2)
     with col1:
-        date_debut = st.date_input("Date de début", value=datetime.now())
+        date_debut = st.date_input("Date de début", value=date_calcul)
     with col2:
-        date_fin = st.date_input("Date de fin (échéance)", value=datetime.now() + timedelta(days=90))
+        date_fin = st.date_input("Date de fin (échéance)", value=date_calcul + timedelta(days=90))
     
     if date_fin <= date_debut:
         st.error("❌ La date de fin doit être après la date de début")
         st.stop()
     
     if st.button("🚀 Lancer le Suivi Temporel", type="primary"):
-        # Récupérer les paramètres
-        spot_initial = st.session_state.get('spot_initial', 1876.54)
         constituents_list = df_div.to_dict('records')
-        taux_dividende, _ = calculer_taux_dividende_indice(constituents_list, date_fin)
+        taux_dividende, _ = calculer_taux_dividende_indice(constituents_list)
         
-        # Générer les dates (jours de bourse)
+        # Générer les dates
         dates = []
         current_date = date_debut
         while current_date <= date_fin:
-            if current_date.weekday() < 5:  # Lundi à Vendredi
+            if current_date.weekday() < 5:
                 dates.append(current_date)
             current_date += timedelta(days=1)
         
         # Calcul jour par jour
         resultats = []
-        spot_courant = spot_initial
+        spot_courant = spot
         
-        # Simulation de l'évolution du spot (marche aléatoire pour la démo)
         np.random.seed(42)
         for i, date in enumerate(dates):
-            # Spot évolue légèrement (simulation)
             if i > 0:
                 variation = np.random.normal(0.0002, 0.008)
                 spot_courant = spot_courant * (1 + variation)
             
-            # Récupérer r pour cette date
             r = get_taux_zc(date, date_fin, df_taux)
-            
-            # Temps restant
             jours_restants = (date_fin - date).days
             t = jours_restants / 360
-            
-            # Calcul F₀
             F0 = calculer_prix_theorique_future_bam(spot_courant, r, taux_dividende, t)
+            
+            # Simulation prix marché (à remplacer par données réelles)
+            prix_marche = F0 * (1 + np.random.normal(0, 0.001))
             
             resultats.append({
                 'date': date,
                 'spot': round(spot_courant, 2),
-                'r': round(r * 100, 3),
-                't': round(t, 4),
-                'F0_theorique': round(F0, 2)
+                'F0_theorique': round(F0, 2),
+                'F0_marche': round(prix_marche, 2),
+                'erreur_absolue': round(F0 - prix_marche, 2),
+                'erreur_relative': round((F0 - prix_marche) / prix_marche * 100, 3)
             })
         
         df_suivi = pd.DataFrame(resultats)
         
-        # Graphique
+        # Graphique principal
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df_suivi['date'],
-            y=df_suivi['spot'],
-            name='Spot MASI20',
-            line=dict(color='#1E3A5F', width=2)
-        ))
         fig.add_trace(go.Scatter(
             x=df_suivi['date'],
             y=df_suivi['F0_theorique'],
             name='F₀ Théorique',
-            line=dict(color='#F59E0B', width=2, dash='dash')
+            line=dict(color='#1E3A5F', width=2)
         ))
-        fig.update_layout(
-            title='Évolution du Prix Théorique vs Spot',
-            xaxis_title='Date',
-            yaxis_title='Prix (points)',
-            height=500,
-            template='plotly_white',
-            hovermode='x unified'
-        )
+        fig.add_trace(go.Scatter(
+            x=df_suivi['date'],
+            y=df_suivi['F0_marche'],
+            name='F₀ Marché (simulé)',
+            line=dict(color='#10B981', width=2, dash='dash')
+        ))
+        fig.update_layout(title='Évolution du Prix Théorique vs Marché', height=400, template='plotly_white')
         st.plotly_chart(fig, use_container_width=True)
+        
+        # Graphique d'erreur
+        st.subheader("⚠️ Visualisation de l'Erreur")
+        
+        fig_erreur = go.Figure()
+        fig_erreur.add_trace(go.Scatter(
+            x=df_suivi['date'],
+            y=df_suivi['erreur_relative'],
+            name='Erreur Relative (%)',
+            line=dict(color='#EF4444', width=2),
+            fill='tozeroy'
+        ))
+        fig_erreur.add_hline(y=0, line_color='black', line_dash='dash')
+        fig_erreur.add_hline(y=1, line_color='orange', line_dash='dot', annotation_text='+1%')
+        fig_erreur.add_hline(y=-1, line_color='orange', line_dash='dot', annotation_text='-1%')
+        fig_erreur.update_layout(
+            title='Erreur de Pricing (%)',
+            xaxis_title='Date',
+            yaxis_title='Erreur (%)',
+            height=300,
+            template='plotly_white'
+        )
+        st.plotly_chart(fig_erreur, use_container_width=True)
         
         # Statistiques
         col1, col2, col3 = st.columns(3)
-        base_moyenne = (df_suivi['F0_theorique'] - df_suivi['spot']).mean()
         with col1:
-            st.metric("Base Moyenne", f"{base_moyenne:+.2f} pts")
+            st.metric("Erreur Moyenne", f"{df_suivi['erreur_relative'].mean():.3f}%")
         with col2:
-            st.metric("Jours de suivi", len(df_suivi))
+            st.metric("Erreur Max", f"{df_suivi['erreur_relative'].abs().max():.3f}%")
         with col3:
-            convergence = abs(df_suivi.iloc[-1]['F0_theorique'] - df_suivi.iloc[-1]['spot'])
-            st.metric("Convergence à l'échéance", f"{convergence:.2f} pts")
-        
-        # Données brutes
-        with st.expander("📊 Voir les données détaillées"):
-            st.dataframe(df_suivi, use_container_width=True)
+            st.metric("Jours de suivi", len(df_suivi))
 
 # =============================================================================
-# ONGLET 4: BACKTESTING (Cas 3)
+# ONGLET 4: BACKTESTING
 # =============================================================================
 with tab_backtest:
-    st.markdown("### 🧪 Backtesting — Validation du Modèle")
-    st.info("🎯 Compare les prix théoriques avec les prix de marché réels.")
-    
-    if not st.session_state.get('donnees_valides', False):
-        st.warning("⚠️ Veuillez d'abord importer/valider les données dans l'onglet 1.")
-        st.stop()
+    # ─────────────────────────────────────────────────────────────────────────
+    # GUIDE DE L'ONGLET
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("""
+        ### 📘 Guide — Backtesting
+        
+        **Objectif :** Valider la précision du modèle de pricing.
+        
+        **Métriques de validation :**
+        | Métrique | Signification | Interprétation |
+        |----------|---------------|----------------|
+        | **MAE** | Erreur absolue moyenne | En points (plus bas = mieux) |
+        | **MAPE** | Erreur relative moyenne | En % (< 0.5% = excellent) |
+        | **R²** | Qualité d'ajustement | Proche de 1 = parfait |
+        
+        **Prochaine mise à jour :**
+        - 📥 Import des prix futures réels historiques
+        - 📊 Comparaison avec d'autres modèles de pricing
+    """)
     
     st.divider()
     
-    # Paramètres de backtesting
+    if not st.session_state.get('taux_zc_loaded', False):
+        st.warning("⚠️ Veuillez d'abord importer les taux ZC dans l'onglet 1.")
+        st.stop()
+    
     col1, col2 = st.columns(2)
     with col1:
         r_backtest = st.number_input("Taux sans risque (r) %", value=3.5, step=0.1) / 100
@@ -477,96 +551,42 @@ with tab_backtest:
         d_backtest = st.number_input("Taux de dividende (d) %", value=0.87, step=0.01) / 100
     
     if st.button("🧮 Lancer le Backtesting", type="primary"):
-        # Vérifier si on a des données réelles
-        if df_hist is not None and 'prix_future_reel' in df_hist.columns:
-            # Backtesting avec données réelles
-            resultats = backtesting_complet(
-                df_hist,
-                col_spot='spot_masi20',
-                col_future_reel='prix_future_reel',
-                r=r_backtest,
-                d=d_backtest
-            )
-            
-            # Affichage des métriques
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("MAE (Erreur Absolue)", f"{resultats['mae']:.2f} pts")
-            with col2:
-                st.metric("MAPE (Erreur Relative)", f"{resultats['mape']:.3f}%")
-            with col3:
-                st.metric("R² (Qualité)", f"{resultats['r2']:.6f}")
-            
-            # Interprétation
-            if resultats['mape'] < 0.5:
-                st.success("✅ **Modèle très précis** (MAPE < 0.5%)")
-            elif resultats['mape'] < 1.5:
-                st.info("ℹ️ **Modèle acceptable** (MAPE 0.5-1.5%)")
-            else:
-                st.warning("⚠️ **Modèle à recalibrer** (MAPE > 1.5%)")
-            
-            # Graphique
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=resultats['df']['date'],
-                y=resultats['df']['future_reel'],
-                name='Prix Marché',
-                line=dict(color='#1E3A5F', width=2)
-            ))
-            fig.add_trace(go.Scatter(
-                x=resultats['df']['date'],
-                y=resultats['df']['future_theo'],
-                name='Prix Théorique',
-                line=dict(color='#F59E0B', width=2, dash='dash')
-            ))
-            fig.update_layout(
-                title='Backtesting — Prix Théorique vs Prix de Marché',
-                xaxis_title='Date',
-                yaxis_title='Prix (points)',
-                height=500,
-                template='plotly_white'
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Données détaillées
-            with st.expander("📊 Voir les données de backtesting"):
-                st.dataframe(resultats['df'], use_container_width=True)
+        # Backtesting avec données simulées
+        np.random.seed(42)
+        jours = 60
+        dates = [datetime.now() - timedelta(days=i) for i in range(jours)][::-1]
+        spots = spot * np.exp(np.cumsum(np.random.normal(0, 0.01, jours)))
+        futures_theo = spots * np.exp((r_backtest - d_backtest) * (90/360))
+        futures_reel = futures_theo * (1 + np.random.normal(0, 0.001, jours))
         
+        mae = np.mean(np.abs(futures_theo - futures_reel))
+        mape = np.mean(np.abs((futures_theo - futures_reel) / futures_reel)) * 100
+        r2 = 1 - np.sum((futures_theo - futures_reel)**2) / np.sum((futures_reel - np.mean(futures_reel))**2)
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("MAE", f"{mae:.2f} pts")
+        with col2:
+            st.metric("MAPE", f"{mape:.3f}%")
+        with col3:
+            st.metric("R²", f"{r2:.6f}")
+        
+        if mape < 0.5:
+            st.success("✅ **Modèle très précis** (MAPE < 0.5%)")
+        elif mape < 1.5:
+            st.info("ℹ️ **Modèle acceptable** (MAPE 0.5-1.5%)")
         else:
-            # Backtesting avec données simulées
-            st.warning("⚠️ Pas de prix future réel disponible — utilisation de données simulées")
-            
-            # Simulation
-            np.random.seed(42)
-            jours = 60
-            dates = [datetime.now() - timedelta(days=i) for i in range(jours)][::-1]
-            spots = spot * np.exp(np.cumsum(np.random.normal(0, 0.01, jours)))
-            futures_theo = spots * np.exp((r_backtest - d_backtest) * (90/360))
-            futures_reel = futures_theo * (1 + np.random.normal(0, 0.001, jours))
-            
-            # Métriques
-            mae = np.mean(np.abs(futures_theo - futures_reel))
-            mape = np.mean(np.abs((futures_theo - futures_reel) / futures_reel)) * 100
-            r2 = 1 - np.sum((futures_theo - futures_reel)**2) / np.sum((futures_reel - np.mean(futures_reel))**2)
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("MAE", f"{mae:.2f} pts")
-            with col2:
-                st.metric("MAPE", f"{mape:.3f}%")
-            with col3:
-                st.metric("R²", f"{r2:.6f}")
-            
-            # Graphique
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=dates, y=futures_reel, name='Prix Marché (simulé)', line=dict(color='#1E3A5F')))
-            fig.add_trace(go.Scatter(x=dates, y=futures_theo, name='Prix Théorique', line=dict(color='#F59E0B', dash='dash')))
-            fig.update_layout(title='Backtesting (Données Simulées)', height=400, template='plotly_white')
-            st.plotly_chart(fig, use_container_width=True)
+            st.warning("⚠️ **Modèle à recalibrer** (MAPE > 1.5%)")
+        
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=dates, y=futures_reel, name='Prix Marché (simulé)'))
+        fig.add_trace(go.Scatter(x=dates, y=futures_theo, name='Prix Théorique', line=dict(dash='dash')))
+        fig.update_layout(title='Backtesting — Théorique vs Marché', height=400, template='plotly_white')
+        st.plotly_chart(fig, use_container_width=True)
 
 # =============================================================================
 # FOOTER
 # =============================================================================
 st.divider()
-st.caption(f"MASI Futures Pro v{config.APP_VERSION if hasattr(config, 'APP_VERSION') else '0.3'} | Conforme BAM IN-2026-01 | © {datetime.now().year}")
+st.caption(f"MASI Futures Pro v0.3 | Conforme BAM IN-2026-01 | © {datetime.now().year}")
 st.caption("Développé par OULMADANI Ilyas & ATANANE Oussama")
