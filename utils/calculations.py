@@ -99,6 +99,7 @@ def calculer_taux_dividende_indice(constituents, date_echeance=None):
         taux_dividende: Taux de dividende de l'indice (décimal)
         details: DataFrame avec le détail du calcul
     """
+    from datetime import datetime as dt
     
     taux_dividende_total = 0
     details = []
@@ -114,9 +115,26 @@ def calculer_taux_dividende_indice(constituents, date_echeance=None):
         # Filtrage par date d'échéance (si date_ex fournie)
         inclus = True
         if date_ex is not None and date_echeance is not None:
-            if isinstance(date_ex, str):
-                date_ex = datetime.strptime(date_ex, '%Y-%m-%d')
-            inclus = date_ex <= date_echeance
+            # Conversion pour compatibilité pandas/datetime
+            if hasattr(date_ex, 'to_pydatetime'):
+                # Timestamp pandas → datetime Python
+                date_ex_dt = date_ex.to_pydatetime()
+            elif isinstance(date_ex, str):
+                # String → datetime Python
+                try:
+                    date_ex_dt = dt.strptime(date_ex, '%Y-%m-%d')
+                except:
+                    date_ex_dt = None
+            else:
+                date_ex_dt = date_ex
+            
+            # Comparaison
+            if date_ex_dt is not None:
+                inclus = date_ex_dt <= date_echeance
+            else:
+                inclus = True  # Si date invalide, on inclut par défaut
+        else:
+            inclus = True
         
         if not inclus:
             dividende = 0  # Exclu du calcul
@@ -128,6 +146,17 @@ def calculer_taux_dividende_indice(constituents, date_echeance=None):
         contribution = poids * dividend_yield
         taux_dividende_total += contribution
         
+        # Formatage de la date pour affichage
+        if date_ex is not None:
+            if hasattr(date_ex, 'strftime'):
+                date_ex_str = date_ex.strftime('%d/%m/%Y')
+            elif isinstance(date_ex, str):
+                date_ex_str = date_ex
+            else:
+                date_ex_str = 'N/A'
+        else:
+            date_ex_str = 'N/A'
+        
         details.append({
             'Ticker': ticker,
             'Nom': constituant.get('nom', ticker),
@@ -136,14 +165,13 @@ def calculer_taux_dividende_indice(constituents, date_echeance=None):
             'Dividende Annuel': f"{dividende:,.2f} MAD",
             'Yield': f"{dividend_yield*100:.3f}%",
             'Contribution': f"{contribution*100:.4f}%",
-            'Date Ex': date_ex.strftime('%d/%m/%Y') if date_ex else 'N/A',
+            'Date Ex': date_ex_str,
             'Statut': statut,
             'Inclus': '✅' if inclus else '❌'
         })
     
     df_details = pd.DataFrame(details)
     return taux_dividende_total, df_details
-
 
 # =============================================================================
 # 3. TAUX SANS RISQUE (r) — DEPUIS TABLEAU ZC
@@ -464,3 +492,4 @@ def jours_vers_annees(jours, base=360):
         Temps en années
     """
     return jours / base
+
