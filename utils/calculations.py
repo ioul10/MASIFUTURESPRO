@@ -84,25 +84,20 @@ def calculer_taux_dividende_indice(constituents, date_echeance=None):
     """
     Calcule le taux de dividende de l'indice selon la formule BAM
     d = Σ(Pi × Di/Ci)
-    
-    Args:
-        constituents: Liste des constituants avec:
-            - ticker
-            - poids (Pi)
-            - dividende_annuel (Di)
-            - cours (Ci)
-            - prochaine_date_ex (optionnel)
-            - statut (optionnel)
-        date_echeance: datetime - Si fournie, filtre les dividendes avant cette date
-    
-    Returns:
-        taux_dividende: Taux de dividende de l'indice (décimal)
-        details: DataFrame avec le détail du calcul
     """
-    from datetime import datetime as dt
+    import pandas as pd
     
     taux_dividende_total = 0
     details = []
+    
+    # Convertir date_echeance en string pour comparaison facile
+    if date_echeance is not None:
+        if hasattr(date_echeance, 'strftime'):
+            date_echeance_str = date_echeance.strftime('%Y-%m-%d')
+        else:
+            date_echeance_str = str(date_echeance)[:10]  # Prendre juste YYYY-MM-DD
+    else:
+        date_echeance_str = None
     
     for constituant in constituents:
         ticker = constituant['ticker']
@@ -112,27 +107,28 @@ def calculer_taux_dividende_indice(constituents, date_echeance=None):
         date_ex = constituant.get('prochaine_date_ex', None)
         statut = constituant.get('statut', 'inconnu')
         
-        # Filtrage par date d'échéance (si date_ex fournie)
+        # Filtrage par date d'échéance
         inclus = True
-        if date_ex is not None and date_echeance is not None:
-            # Conversion pour compatibilité pandas/datetime
-            if hasattr(date_ex, 'to_pydatetime'):
-                # Timestamp pandas → datetime Python
-                date_ex_dt = date_ex.to_pydatetime()
-            elif isinstance(date_ex, str):
-                # String → datetime Python
-                try:
-                    date_ex_dt = dt.strptime(date_ex, '%Y-%m-%d')
-                except:
-                    date_ex_dt = None
-            else:
-                date_ex_dt = date_ex
-            
-            # Comparaison
-            if date_ex_dt is not None:
-                inclus = date_ex_dt <= date_echeance
-            else:
-                inclus = True  # Si date invalide, on inclut par défaut
+        
+        if date_ex is not None and date_echeance_str is not None:
+            # Convertir date_ex en string YYYY-MM-DD
+            try:
+                if hasattr(date_ex, 'strftime'):
+                    # Timestamp ou datetime
+                    date_ex_str = date_ex.strftime('%Y-%m-%d')
+                elif isinstance(date_ex, str):
+                    # Déjà une string
+                    date_ex_str = str(date_ex)[:10]
+                else:
+                    # Autre format
+                    date_ex_str = str(date_ex)[:10]
+                
+                # Comparaison de strings (fonctionne pour YYYY-MM-DD)
+                inclus = date_ex_str <= date_echeance_str
+                
+            except Exception:
+                # Si erreur de conversion, on inclut par défaut
+                inclus = True
         else:
             inclus = True
         
@@ -148,14 +144,15 @@ def calculer_taux_dividende_indice(constituents, date_echeance=None):
         
         # Formatage de la date pour affichage
         if date_ex is not None:
-            if hasattr(date_ex, 'strftime'):
-                date_ex_str = date_ex.strftime('%d/%m/%Y')
-            elif isinstance(date_ex, str):
-                date_ex_str = date_ex
-            else:
-                date_ex_str = 'N/A'
+            try:
+                if hasattr(date_ex, 'strftime'):
+                    date_ex_affichage = date_ex.strftime('%d/%m/%Y')
+                else:
+                    date_ex_affichage = str(date_ex)[:10]
+            except:
+                date_ex_affichage = 'N/A'
         else:
-            date_ex_str = 'N/A'
+            date_ex_affichage = 'N/A'
         
         details.append({
             'Ticker': ticker,
@@ -165,7 +162,7 @@ def calculer_taux_dividende_indice(constituents, date_echeance=None):
             'Dividende Annuel': f"{dividende:,.2f} MAD",
             'Yield': f"{dividend_yield*100:.3f}%",
             'Contribution': f"{contribution*100:.4f}%",
-            'Date Ex': date_ex_str,
+            'Date Ex': date_ex_affichage,
             'Statut': statut,
             'Inclus': '✅' if inclus else '❌'
         })
@@ -492,4 +489,5 @@ def jours_vers_annees(jours, base=360):
         Temps en années
     """
     return jours / base
+
 
