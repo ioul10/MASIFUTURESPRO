@@ -186,27 +186,54 @@ def get_taux_zc(date_calcul, date_echeance, df_taux_zc):
     Returns:
         float: Taux zc en décimal (ex: 0.0285 pour 2.85%)
     """
-    # Convertir les dates si nécessaire
-    if not pd.api.types.is_datetime64_any_dtype(df_taux_zc['date_spot']):
-        df_taux_zc['date_spot'] = pd.to_datetime(df_taux_zc['date_spot'])
-    if not pd.api.types.is_datetime64_any_dtype(df_taux_zc['date_maturity']):
-        df_taux_zc['date_maturity'] = pd.to_datetime(df_taux_zc['date_maturity'])
+    import pandas as pd
     
-    # 1. Filtrer: taux publiés avant ou le jour de calcul
-    df_filtre = df_taux_zc[df_taux_zc['date_spot'] <= date_calcul].copy()
+    # Créer une copie pour éviter les modifications
+    df = df_taux_zc.copy()
+    
+    # Convertir date_calcul en string pour comparaison
+    if hasattr(date_calcul, 'strftime'):
+        date_calcul_str = date_calcul.strftime('%Y-%m-%d')
+    else:
+        date_calcul_str = str(date_calcul)[:10]
+    
+    # Convertir date_echeance en string
+    if hasattr(date_echeance, 'strftime'):
+        date_echeance_str = date_echeance.strftime('%Y-%m-%d')
+    else:
+        date_echeance_str = str(date_echeance)[:10]
+    
+    # Convertir les colonnes de dates en strings pour comparaison
+    if 'date_spot_str' not in df.columns:
+        df['date_spot_str'] = pd.to_datetime(df['date_spot']).dt.strftime('%Y-%m-%d')
+    if 'date_maturity_str' not in df.columns:
+        df['date_maturity_str'] = pd.to_datetime(df['date_maturity']).dt.strftime('%Y-%m-%d')
+    
+    # 1. Filtrer: taux publiés avant ou le jour de calcul (comparaison de strings)
+    df_filtre = df[df['date_spot_str'] <= date_calcul_str].copy()
     
     if len(df_filtre) == 0:
         return 0.035  # Valeur par défaut si aucune donnée
     
     # 2. Calculer l'écart en jours entre chaque maturity et l'échéance cible
-    df_filtre['ecart'] = abs((df_filtre['date_maturity'] - date_echeance).dt.days)
+    # Convertir en datetime pour calculer la différence
+    try:
+        df_filtre['maturity_dt'] = pd.to_datetime(df_filtre['date_maturity_str'])
+        echeance_dt = pd.to_datetime(date_echeance_str)
+        df_filtre['ecart'] = abs((df_filtre['maturity_dt'] - echeance_dt).dt.days)
+    except Exception:
+        # Fallback: prendre le premier
+        meilleure = df_filtre.iloc[0]
+        return float(meilleure['zc']) / 100
     
     # 3. Prendre la ligne avec le plus petit écart
     meilleure = df_filtre.loc[df_filtre['ecart'].idxmin()]
     
     # 4. Retourner le taux en décimal
-    return meilleure['zc'] / 100
-
+    try:
+        return float(meilleure['zc']) / 100
+    except:
+        return 0.035  # Valeur par défaut
 
 # =============================================================================
 # 4. SENSIBILITÉS (GRECQUES)
@@ -489,5 +516,6 @@ def jours_vers_annees(jours, base=360):
         Temps en années
     """
     return jours / base
+
 
 
