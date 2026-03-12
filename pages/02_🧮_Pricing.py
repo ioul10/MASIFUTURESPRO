@@ -403,60 +403,80 @@ with tab_backtest:
     
     st.divider()
     
-    # ─────────────────────────────────────────────────────────────────────────
-    # MISSION 2: VISUALISATION GRAPHIQUE
-    # ─────────────────────────────────────────────────────────────────────────
-    st.markdown("### 📊 Mission 2 — Graphique d'Évolution")
+   # MISSION 2: TAUX DE DIVIDENDE (q)
+st.markdown("### 💰 Mission 2 — Taux de Dividende (q)")
+
+# Checkbox pour choisir le mode
+if 'q_mode_auto' not in st.session_state:
+    st.session_state['q_mode_auto'] = False
+
+q_mode_auto = st.checkbox(
+    "🔄 Utiliser l'import automatique (décocher pour saisie manuelle)",
+    value=st.session_state['q_mode_auto']
+)
+
+st.session_state['q_mode_auto'] = q_mode_auto
+
+st.divider()
+
+if q_mode_auto:
+    # MODE AUTOMATIQUE
+    st.info("📁 Mode Import Automatique")
     
-    if 'backtest_results' in st.session_state:
-        res = st.session_state['backtest_results']
-        
-        # Graphique principal
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=res['dates'],
-            y=res['futures_reel'],
-            name='Prix Marché Réel',
-            line=dict(color='#1E3A5F', width=2)
-        ))
-        fig.add_trace(go.Scatter(
-            x=res['dates'],
-            y=res['futures_theo'],
-            name='Prix Théorique (Modèle)',
-            line=dict(color='#F59E0B', width=2, dash='dash')
-        ))
-        fig.update_layout(
-            title='Backtesting — Évolution Prix Théorique vs Réel',
-            xaxis_title='Date',
-            yaxis_title='Prix (points)',
-            height=400,
-            template='plotly_white'
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Graphique des erreurs
-        fig_erreur = go.Figure()
-        fig_erreur.add_trace(go.Scatter(
-            x=res['dates'],
-            y=res['erreurs_pct'],
-            name='Erreur Relative (%)',
-            line=dict(color='#EF4444', width=2),
-            fill='tozeroy'
-        ))
-        fig_erreur.add_hline(y=0, line_color='black', line_dash='dash')
-        fig_erreur.add_hline(y=1, line_color='orange', line_dash='dot', annotation_text='+1%')
-        fig_erreur.add_hline(y=-1, line_color='orange', line_dash='dot', annotation_text='-1%')
-        fig_erreur.update_layout(
-            title='Évolution des Erreurs de Pricing (%)',
-            xaxis_title='Date',
-            yaxis_title='Erreur (%)',
-            height=300,
-            template='plotly_white'
-        )
-        st.plotly_chart(fig_erreur, use_container_width=True)
+    uploaded_div = st.file_uploader(
+        "Importer le fichier des dividendes",
+        type=['csv', 'xlsx'],
+        key="div_import_auto"
+    )
     
-    st.divider()
+    if uploaded_div:
+        df_div = charger_dividendes(uploaded_div, utiliser_mock=False)
+        if df_div is not None:
+            st.session_state['df_div'] = df_div
+            constituents_list = df_div.to_dict('records')
+            taux_dividende, df_details = calculer_taux_dividende_indice(constituents_list)
+            st.session_state['q_calculated'] = taux_dividende
+            st.success("✅ Fichier chargé")
+    else:
+        if 'df_div' not in st.session_state:
+            df_div = charger_dividendes(utiliser_mock=True)
+            st.session_state['df_div'] = df_div
+            constituents_list = df_div.to_dict('records')
+            taux_dividende, _ = calculer_taux_dividende_indice(constituents_list)
+            st.session_state['q_calculated'] = taux_dividende
+        else:
+            df_div = st.session_state['df_div']
+            taux_dividende = st.session_state.get('q_calculated', 0.0087)
     
+    if 'q_calculated' in st.session_state:
+        st.metric("Taux de Dividende (q)", f"{st.session_state['q_calculated']*100:.4f}%")
+
+else:
+    # MODE MANUEL
+    st.info("✍️ Mode Saisie Manuelle")
+    
+    if 'q_manual' not in st.session_state:
+        st.session_state['q_manual'] = 0.87
+    
+    q_input = st.number_input(
+        "Taux de dividende (q) %",
+        min_value=0.0,
+        max_value=10.0,
+        value=st.session_state['q_manual'],
+        step=0.01
+    )
+    
+    st.session_state['q_manual'] = q_input
+    st.session_state['q_calculated'] = q_input / 100
+    
+    st.metric("Taux de Dividende (q)", f"{q_input:.2f}%")
+
+# Récupération de q
+q_final = st.session_state.get('q_calculated', 0.0087)
+
+st.divider()
+mode_text = "🔄 Automatique" if q_mode_auto else "✍️ Manuel"
+st.caption(f"Mode: {mode_text} | q = {q_final*100:.4f}%")
     # ─────────────────────────────────────────────────────────────────────────
     # MISSION 3: ALERTES & VALIDATION
     # ─────────────────────────────────────────────────────────────────────────
