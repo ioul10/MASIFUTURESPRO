@@ -172,6 +172,104 @@ setInterval(updateClock, 1000);
 
 st.components.v1.html(horloge_html, height=180)
 
+# Titre
+st.title(f"Bienvenue sur {config.APP_NAME}")
+
+# Objectif
+st.markdown(f"""
+    <div style='padding: 30px; background: linear-gradient(135deg, {config.COLORS["card"]} 0%, #f8fafc 100%); 
+                border-radius: 16px; margin: 20px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08);'>
+        <h2 style='color: {config.COLORS["primary"]}; margin-top: 0;'>🎯 Objectif de l'Application</h2>
+        <p style='font-size: 1.1em; line-height: 1.8;'>
+            {config.APP_NAME} est une plateforme professionnelle de pricing des contrats futures 
+            sur les indices <strong>MASI</strong> et <strong>MASI20</strong> de la Bourse de Casablanca.
+        </p>
+        <p style='font-size: 1.1em; line-height: 1.8;'>
+            Conforme à l'**Instruction BAM N° IN-2026-01**, cette application 
+            vous permet de calculer le prix théorique des futures en temps réel, d'analyser les 
+            opportunités d'arbitrage et de visualiser la structure par terme des prix.
+        </p>
+    </div>
+""", unsafe_allow_html=True)
+
+st.divider()
+
+# Actions Rapides
+st.markdown("### 🚀 Accès Rapide aux Pages")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown(f"""
+        <div class='metric-card' style='padding: 25px; background: {config.COLORS["card"]}; 
+                    border-radius: 12px; text-align: center; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                    border-top: 4px solid {config.COLORS["primary"]};'>
+            <h3 style='font-size: 2.5em; margin: 0;'>🧮</h3>
+            <h4 style='margin: 10px 0;'>Pricing</h4>
+            <p style='color: {config.COLORS["text_muted"]};'>
+                Prix théorique F₀ avec Term Structure
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown(f"""
+        <div class='metric-card' style='padding: 25px; background: {config.COLORS["card"]}; 
+                    border-radius: 12px; text-align: center; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                    border-top: 4px solid {config.COLORS["success"]};'>
+            <h3 style='font-size: 2.5em; margin: 0;'>🛡️</h3>
+            <h4 style='margin: 10px 0;'>Couverture</h4>
+            <p style='color: {config.COLORS["text_muted"]};'>
+                Calcul N* pour hedging de portefeuille
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown(f"""
+        <div class='metric-card' style='padding: 25px; background: {config.COLORS["card"]}; 
+                    border-radius: 12px; text-align: center; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                    border-top: 4px solid {config.COLORS["warning"]};'>
+            <h3 style='font-size: 2.5em; margin: 0;'>📊</h3>
+            <h4 style='margin: 10px 0;'>Risques</h4>
+            <p style='color: {config.COLORS["text_muted"]};'>
+                VaR, P&L, marges et alertes
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+st.divider()
+
+# Guide BAM
+with st.expander("📚 Instruction BAM N° IN-2026-01 — Résumé"):
+    st.markdown("""
+        ### 📐 Formule du Cours Théorique
+        
+        **F₀ = S × e^((r - d) × t)**
+        
+        | Variable | Signification | Source |
+        |----------|---------------|--------|
+        | **S** | Prix spot de l'indice | Bourse de Casablanca |
+        | **r** | Taux sans risque | BKAM (fichier Excel) |
+        | **d** | Taux de dividende | Calculé selon échéance |
+        | **t** | Temps (jours/360) | Selon maturité du future |
+        
+        ### 📋 Hiérarchie des Cours de Clôture
+        
+        1. **Cours du fixing** (priorité)
+        2. **Dernier cours traité** (si pas de fixing)
+        3. **Cours théorique** (si pas de cours)
+        
+        *Conforme à l'Instruction Bank Al-Maghrib N° IN-2026-01*
+    """)
+
+# Footer
+render_footer()     
+
+
 
 
 
