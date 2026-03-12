@@ -6,6 +6,15 @@ from components.header import render_header
 from components.footer import render_footer
 from utils.scraping import update_statut_connexions
 from datetime import datetime
+
+# Configuration (TOUJOURS EN PREMIER)
+st.set_page_config(
+    page_title=config.APP_NAME,
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 # Horloge Dynamique — Version Corrigée
 horloge_html = """
 <div style='padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%); 
@@ -129,5 +138,6 @@ setInterval(updateClock, 1000);
 """
 
 st.components.v1.html(horloge_html, height=180)
+
 
 
