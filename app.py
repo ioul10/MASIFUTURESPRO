@@ -194,54 +194,7 @@ st.markdown(f"""
 
 st.divider()
 
-# Actions Rapides
-st.markdown("### 🚀 Accès Rapide aux Pages")
 
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown(f"""
-        <div class='metric-card' style='padding: 25px; background: {config.COLORS["card"]}; 
-                    border-radius: 12px; text-align: center; 
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                    border-top: 4px solid {config.COLORS["primary"]};'>
-            <h3 style='font-size: 2.5em; margin: 0;'>🧮</h3>
-            <h4 style='margin: 10px 0;'>Pricing</h4>
-            <p style='color: {config.COLORS["text_muted"]};'>
-                Prix théorique F₀ avec Term Structure
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.markdown(f"""
-        <div class='metric-card' style='padding: 25px; background: {config.COLORS["card"]}; 
-                    border-radius: 12px; text-align: center; 
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                    border-top: 4px solid {config.COLORS["success"]};'>
-            <h3 style='font-size: 2.5em; margin: 0;'>🛡️</h3>
-            <h4 style='margin: 10px 0;'>Couverture</h4>
-            <p style='color: {config.COLORS["text_muted"]};'>
-                Calcul N* pour hedging de portefeuille
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col3:
-    st.markdown(f"""
-        <div class='metric-card' style='padding: 25px; background: {config.COLORS["card"]}; 
-                    border-radius: 12px; text-align: center; 
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                    border-top: 4px solid {config.COLORS["warning"]};'>
-            <h3 style='font-size: 2.5em; margin: 0;'>📊</h3>
-            <h4 style='margin: 10px 0;'>Risques</h4>
-            <p style='color: {config.COLORS["text_muted"]};'>
-                VaR, P&L, marges et alertes
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-
-st.divider()
 
 # Guide BAM
 with st.expander("📚 Instruction BAM N° IN-2026-01 — Résumé"):
@@ -268,6 +221,7 @@ with st.expander("📚 Instruction BAM N° IN-2026-01 — Résumé"):
 
 # Footer
 render_footer()     
+
 
 
 
