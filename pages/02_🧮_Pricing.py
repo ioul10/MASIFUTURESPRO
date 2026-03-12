@@ -190,19 +190,16 @@ with tab_import:
     
     st.divider()
     
-# ─────────────────────────────────────────────────────────────────────────
-# MISSION 2: TAUX DE DIVIDENDE (q) — DOUBLE MODE
-# ─────────────────────────────────────────────────────────────────────────
+# MISSION 2: TAUX DE DIVIDENDE (q)
 st.markdown("### 💰 Mission 2 — Taux de Dividende (q)")
 
 # Checkbox pour choisir le mode
 if 'q_mode_auto' not in st.session_state:
-    st.session_state['q_mode_auto'] = False  # Défaut: manuel
+    st.session_state['q_mode_auto'] = False
 
 q_mode_auto = st.checkbox(
     "🔄 Utiliser l'import automatique (décocher pour saisie manuelle)",
-    value=st.session_state['q_mode_auto'],
-    help="Cochez pour importer un fichier, décochez pour saisir manuellement"
+    value=st.session_state['q_mode_auto']
 )
 
 st.session_state['q_mode_auto'] = q_mode_auto
@@ -210,37 +207,24 @@ st.session_state['q_mode_auto'] = q_mode_auto
 st.divider()
 
 if q_mode_auto:
-    # ═══════════════════════════════════════════════════════════════════
-    # MODE AUTOMATIQUE — Import fichier
-    # ═══════════════════════════════════════════════════════════════════
-    st.info("📁 **Mode Import Automatique** — Importez votre fichier de dividendes")
+    # MODE AUTOMATIQUE
+    st.info("📁 Mode Import Automatique")
     
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        uploaded_div = st.file_uploader(
-            "Importer le fichier des dividendes (Excel/CSV)",
-            type=['csv', 'xlsx'],
-            key="div_import_auto"
-        )
-    
-    with col2:
-        st.info("**Format :** ticker \\| poids \\| cours \\| div_annuel")
+    uploaded_div = st.file_uploader(
+        "Importer le fichier des dividendes",
+        type=['csv', 'xlsx'],
+        key="div_import_auto"
+    )
     
     if uploaded_div:
         df_div = charger_dividendes(uploaded_div, utiliser_mock=False)
         if df_div is not None:
             st.session_state['df_div'] = df_div
-            st.session_state['q_mode_manual'] = False
-            
-            # Calcul automatique de q
             constituents_list = df_div.to_dict('records')
             taux_dividende, df_details = calculer_taux_dividende_indice(constituents_list)
             st.session_state['q_calculated'] = taux_dividende
-            
-            st.success(f"✅ Fichier chargé — q calculé automatiquement")
+            st.success("✅ Fichier chargé")
     else:
-        # Fallback sur données mockées
         if 'df_div' not in st.session_state:
             df_div = charger_dividendes(utiliser_mock=True)
             st.session_state['df_div'] = df_div
@@ -251,93 +235,35 @@ if q_mode_auto:
             df_div = st.session_state['df_div']
             taux_dividende = st.session_state.get('q_calculated', 0.0087)
     
-    # Affichage du résultat
     if 'q_calculated' in st.session_state:
-        st.markdown(f"""
-            <div class='risk-card alert-success'>
-                <h4 style='margin: 0; color: #065f46;'>💰 Taux de Dividende (q)</h4>
-                <p style='font-size: 2em; margin: 10px 0; font-weight: bold; color: #10B981;'>
-                    {st.session_state['q_calculated']*100:.4f}%
-                </p>
-                <p style='margin: 0; color: #6B7280;'>
-                    Calculé automatiquement sur {len(df_div)} constituants
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        with st.expander("📊 Détail du calcul"):
-            st.dataframe(df_div[['ticker', 'nom', 'poids', 'dividende_annuel', 'cours']], 
-                        use_container_width=True)
+        st.metric("Taux de Dividende (q)", f"{st.session_state['q_calculated']*100:.4f}%")
 
 else:
-    # ═══════════════════════════════════════════════════════════════════
-    # MODE MANUEL — Saisie directe
-    # ═══════════════════════════════════════════════════════════════════
-    st.info("✍️ **Mode Saisie Manuelle** — Entrez directement la valeur de q")
+    # MODE MANUEL
+    st.info("✍️ Mode Saisie Manuelle")
     
-    # Valeur par défaut sauvegardée
     if 'q_manual' not in st.session_state:
-        st.session_state['q_manual'] = 0.87  # Valeur défaut
+        st.session_state['q_manual'] = 0.87
     
     q_input = st.number_input(
-        "Taux de dividende annualisé (q) %",
+        "Taux de dividende (q) %",
         min_value=0.0,
         max_value=10.0,
         value=st.session_state['q_manual'],
-        step=0.01,
-        help="Taux de dividende global de l'indice MASI20"
+        step=0.01
     )
     
-    # Sauvegarder la valeur
     st.session_state['q_manual'] = q_input
     st.session_state['q_calculated'] = q_input / 100
     
-    st.markdown(f"""
-        <div class='risk-card'>
-            <h4 style='margin: 0; color: #1E3A5F;'>💰 Taux de Dividende (q)</h4>
-            <p style='font-size: 2em; margin: 10px 0; font-weight: bold; color: #1E3A5F;'>
-                {q_input:.2f}%
-            </p>
-            <p style='margin: 0; color: #6B7280;'>
-                Saisie manuelle — Modifiable à tout moment
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Sources d'information
-    with st.expander("🔍 Où trouver cette valeur ?"):
-        st.markdown("""
-            **Sources recommandées :**
-            
-            1. **CDG Capital** — Rapports mensuels MASI20
-               - Rubrique : "Rendement en dividende"
-               - Valeur typique : 0.80% - 1.20%
-            
-            2. **Bourse de Casablanca**
-               - Site : www.casablanca-bourse.com
-               - Indice MASI20 → Caractéristiques
-            
-            3. **Calcul historique**
-               - Moyenne des 12 derniers mois
-               - Valeur courante : ~0.87%
-        """)
+    st.metric("Taux de Dividende (q)", f"{q_input:.2f}%")
 
-# ═══════════════════════════════════════════════════════════════════════
-# RÉCUPÉRATION DE q POUR LES AUTRES ONGLETS
-# ═══════════════════════════════════════════════════════════════════════
-
-# q est toujours disponible via st.session_state['q_calculated']
-if 'q_calculated' in st.session_state:
-    q_final = st.session_state['q_calculated']
-else:
-    q_final = 0.0087  # Valeur par défaut
+# Récupération de q
+q_final = st.session_state.get('q_calculated', 0.0087)
 
 st.divider()
-
-# Indicateur de mode
-mode_text = "🔄 Automatique (Import)" if q_mode_auto else "✍️ Manuel (Saisie)"
-st.caption(f"📌 **Mode actuel :** {mode_text} | q = {q_final*100:.4f}%")
-    
+mode_text = "🔄 Automatique" if q_mode_auto else "✍️ Manuel"
+st.caption(f"Mode: {mode_text} | q = {q_final*100:.4f}%")
     st.divider()
     
     # ─────────────────────────────────────────────────────────────────────────
