@@ -15,6 +15,33 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# =============================================================================
+# BANDEAU DÉVELOPPEMENT EN COURS
+# =============================================================================
+st.markdown("""
+    <div class='dev-banner'>
+        <div style='display: flex; align-items: center; gap: 15px; flex-wrap: wrap;'>
+            <div style='font-size: 2.5em;'>🚧</div>
+            <div style='flex: 1;'>
+                <h3 style='margin: 0; color: #92400e;'>⚠️ Application en Développement</h3>
+                <p style='margin: 10px 0 0 0; color: #78350f; line-height: 1.6;'>
+                    Cette application est actuellement en <strong>phase de test et développement</strong>. 
+                    Certaines fonctionnalités peuvent être incomplètes ou en cours d'amélioration.
+                </p>
+                <p style='margin: 10px 0 0 0; color: #78350f; font-size: 0.9em;'>
+                    📅 <strong>Version actuelle :</strong> v0.4 Beta &nbsp;|&nbsp; 
+                    🎯 <strong>Statut :</strong> Module de Pricing Opérationnel
+                </p>
+            </div>
+            <div style='text-align: right; min-width: 150px;'>
+                <p style='margin: 0; font-size: 0.85em; color: #92400e;'>Prochaine mise à jour</p>
+                <p style='margin: 5px 0 0 0; font-weight: bold; color: #78350f;'>Semaine 1</p>
+            </div>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+st.divider()
 # CSS Personnalisé
 st.markdown("""
     <style>
@@ -219,31 +246,6 @@ with st.expander("📚 Instruction BAM N° IN-2026-01 — Résumé"):
         *Conforme à l'Instruction Bank Al-Maghrib N° IN-2026-01*
     """)
 
-# =============================================================================
-# BANDEAU DÉVELOPPEMENT EN COURS
-# =============================================================================
-st.markdown("""
-    <div class='dev-banner'>
-        <div style='display: flex; align-items: center; gap: 15px; flex-wrap: wrap;'>
-            <div style='font-size: 2.5em;'>🚧</div>
-            <div style='flex: 1;'>
-                <h3 style='margin: 0; color: #92400e;'>⚠️ Application en Développement</h3>
-                <p style='margin: 10px 0 0 0; color: #78350f; line-height: 1.6;'>
-                    Cette application est actuellement en <strong>phase de test et développement</strong>. 
-                    Certaines fonctionnalités peuvent être incomplètes ou en cours d'amélioration.
-                </p>
-                <p style='margin: 10px 0 0 0; color: #78350f; font-size: 0.9em;'>
-                    📅 <strong>Version actuelle :</strong> v0.4 Beta &nbsp;|&nbsp; 
-                    🎯 <strong>Statut :</strong> Module de Pricing Opérationnel
-                </p>
-            </div>
-            <div style='text-align: right; min-width: 150px;'>
-                <p style='margin: 0; font-size: 0.85em; color: #92400e;'>Prochaine mise à jour</p>
-                <p style='margin: 5px 0 0 0; font-weight: bold; color: #78350f;'>Semaine 1</p>
-            </div>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
 
 st.divider()
 
@@ -315,6 +317,7 @@ st.divider()
 st.caption(f"**MASI Futures Pro** v{config.APP_VERSION if hasattr(config, 'APP_VERSION') else '0.4'} Beta | Conforme BAM IN-2026-01")
 st.caption(f"© {datetime.now().year} — Développé par **OULMADANI Ilyas** & **ATANANE Oussama**")
 st.caption("📧 Contact : [ioulmadani@gmail.com]") 
+
 
 
 
