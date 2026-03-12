@@ -15,6 +15,39 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# CSS Personnalisé
+st.markdown("""
+    <style>
+    .main {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 50%, #d4dce6 100%);
+    }
+    .stApp > header {
+        background: linear-gradient(90deg, #1E3A5F 0%, #2E5C8A 100%);
+        box-shadow: 0 2px 8px rgba(30, 58, 95, 0.3);
+    }
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(30, 58, 95, 0.15);
+        transition: all 0.3s ease;
+    }
+    .stButton>button {
+        background: linear-gradient(135deg, #1E3A5F 0%, #2E5C8A 100%);
+        color: white !important;
+        border: none;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #2E5C8A 0%, #3E7CAD 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Initialisation
+update_statut_connexions()
+render_sidebar()
+render_header()
+
 # Horloge Dynamique — Version Corrigée
 horloge_html = """
 <div style='padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%); 
@@ -138,6 +171,7 @@ setInterval(updateClock, 1000);
 """
 
 st.components.v1.html(horloge_html, height=180)
+
 
 
 
