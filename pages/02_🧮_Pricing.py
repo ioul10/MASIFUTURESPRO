@@ -207,7 +207,6 @@ st.session_state['q_mode_auto'] = q_mode_auto
 st.divider()
 
 if q_mode_auto:
-    # MODE AUTOMATIQUE
     st.info("📁 Mode Import Automatique")
     
     uploaded_div = st.file_uploader(
@@ -239,7 +238,6 @@ if q_mode_auto:
         st.metric("Taux de Dividende (q)", f"{st.session_state['q_calculated']*100:.4f}%")
 
 else:
-    # MODE MANUEL
     st.info("✍️ Mode Saisie Manuelle")
     
     if 'q_manual' not in st.session_state:
@@ -258,7 +256,6 @@ else:
     
     st.metric("Taux de Dividende (q)", f"{q_input:.2f}%")
 
-# Récupération de q
 q_final = st.session_state.get('q_calculated', 0.0087)
 
 st.divider()
