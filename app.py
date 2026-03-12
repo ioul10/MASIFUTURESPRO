@@ -1,3 +1,4 @@
+import streamlit.components.v1 as components 
 # Horloge Dynamique — Version Corrigée
 horloge_html = """
 <div style='padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%); 
@@ -121,3 +122,4 @@ setInterval(updateClock, 1000);
 """
 
 st.components.v1.html(horloge_html, height=180)
+
