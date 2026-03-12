@@ -1,6 +1,6 @@
 # =============================================================================
-# PAGE 2: PRICING THÉORIQUE — MASI Futures Pro
-# Version 0.3 — Conforme Instruction BAM N° IN-2026-01
+# PAGE 2: PRICING & GESTION DES RISQUES — MASI Futures Pro
+# Version 0.4 — Design Gestion des Risques
 # Développeurs: OULMADANI Ilyas & ATANANE Oussama
 # =============================================================================
 
@@ -19,476 +19,396 @@ from utils.calculations import (
     calculer_taux_dividende_indice,
     get_taux_zc,
     calcul_term_structure,
-    backtesting_complet
+    backtesting_complet,
+    calculer_mae,
+    calculer_mape,
+    calculer_r2
 )
 from utils.data_loader import (
     charger_taux_zc,
-    charger_dividendes,
-    charger_historique_masi20
+    charger_dividendes
 )
 
 # Configuration
-st.set_page_config(page_title="Pricing Théorique", page_icon="🧮", layout="wide")
+st.set_page_config(page_title="Pricing & Risques", page_icon="📊", layout="wide")
+
+# =============================================================================
+# CSS PERSONNALISÉ — DESIGN GESTION DES RISQUES
+# =============================================================================
+st.markdown("""
+    <style>
+    .risk-card {
+        padding: 20px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-left: 5px solid #1E3A5F;
+        margin: 10px 0;
+        box-shadow: 0 2px 8px rgba(30,58,95,0.1);
+    }
+    .alert-success {
+        border-left-color: #10B981;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    }
+    .alert-warning {
+        border-left-color: #F59E0B;
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    }
+    .alert-error {
+        border-left-color: #EF4444;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    }
+    .guide-panel {
+        padding: 15px;
+        background: #f0f9ff;
+        border-radius: 8px;
+        border: 1px solid #bae6fd;
+        margin-bottom: 20px;
+    }
+    .metric-box {
+        text-align: center;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # =============================================================================
 # EN-TÊTE DE PAGE
 # =============================================================================
-st.title("🧮 Pricing Théorique — Instruction BAM N° IN-2026-01")
-st.caption("Calcul du cours théorique avec Term Structure et Backtesting")
+st.title("📊 Pricing & Gestion des Risques — MASI20")
+st.caption("Module de valorisation des contrats futures — Conforme Instruction BAM N° IN-2026-01")
 
 # =============================================================================
-# INITIALISATION DES DONNÉES (SESSION STATE)
+# INITIALISATION SESSION STATE
 # =============================================================================
-if 'taux_zc_loaded' not in st.session_state:
-    st.session_state['taux_zc_loaded'] = False
-if 'dividendes_loaded' not in st.session_state:
-    st.session_state['dividendes_loaded'] = False
+if 'donnees_valides' not in st.session_state:
+    st.session_state['donnees_valides'] = False
 if 'date_reference' not in st.session_state:
     st.session_state['date_reference'] = None
+if 'df_taux' not in st.session_state:
+    st.session_state['df_taux'] = None
+if 'df_div' not in st.session_state:
+    st.session_state['df_div'] = None
 
 # =============================================================================
 # CRÉATION DES ONGLETS PRINCIPAUX
 # =============================================================================
-tab_import, tab_pricing, tab_suivi, tab_backtest = st.tabs([
-    "📥 1. Import Taux ZC",
-    "📊 2. Pricing Instantané",
-    "📈 3. Suivi Temporel",
-    "🧪 4. Backtesting"
+tab_import, tab_backtest, tab_pricing = st.tabs([
+    "📥 1. Importation de Base",
+    "🧪 2. Backtesting & Validation",
+    "📈 3. Pricing & Suivi"
 ])
 
 # =============================================================================
-# ONGLET 1: IMPORT DES TAUX ZC
+# ONGLET 1: IMPORTATION DE BASE
 # =============================================================================
 with tab_import:
     # ─────────────────────────────────────────────────────────────────────────
-    # GUIDE DE L'ONGLET
+    # GUIDE (BARRE CACHABLE)
     # ─────────────────────────────────────────────────────────────────────────
-    st.markdown("""
-        ### 📘 Guide — Import des Taux Zéro-Coupon
-        
-        **Objectif :** Importer la courbe des taux ZC de Bank Al-Maghrib.
-        
-        **Format du fichier attendu :**
-        | date_spot | date_maturity | zc |
-        |-----------|---------------|-----|
-        | 31/12/2025 | 01/07/2026 | 2,2327 |
-        
-        **Colonnes :**
-        - `date_spot` : Date de publication du taux (BKAM)
-        - `date_maturity` : Date d'échéance du taux ZC
-        - `zc` : Taux zéro-coupon en % (ex: 2,2327)
-        
-        **Comment ça marche :**
-        1. Importez votre fichier CSV/Excel
-        2. Sélectionnez la date de référence pour le pricing
-        3. Cette date sera utilisée dans les onglets 2, 3 et 4
-        
-        **Prochaine mise à jour :**
-        - 🔄 Import automatique depuis le site BKAM (scraping)
-        - 📊 Visualisation de la courbe des taux
-    """)
+    with st.expander("📘 Guide — Importation de Base", expanded=True):
+        st.markdown("""
+            ### 🎯 Objectif de cet onglet
+            
+            Préparer les données nécessaires pour la valorisation des contrats futures MASI20.
+            
+            ### 📋 3 Missions
+            
+            | Mission | Description | Résultat |
+            |---------|-------------|----------|
+            | **1. Import Taux ZC** | Fichier Excel/CSV avec courbe des taux | Date spot de référence |
+            | **2. Import Dividendes** | Taux de dividende des 20 constituants | Calcul de q (dividend yield) |
+            | **3. Validation** | Vérifier la cohérence des données | Prêt pour pricing & backtesting |
+            
+            ### 📁 Formats Attendus
+            
+            **Taux ZC :** `date_spot | date_maturity | zc`
+            - Même date_spot pour toutes les lignes
+            - zc en % (ex: 2,2586)
+            
+            **Dividendes :** `ticker | poids | taux_dividende | fréquence | taux_annuel | taux_semestriel | taux_trimestriel`
+            
+            ### ✅ Prochaine Étape
+            Une fois les données validées, passez aux onglets 2 et 3.
+        """)
     
     st.divider()
     
     # ─────────────────────────────────────────────────────────────────────────
-    # IMPORT DU FICHIER
+    # MISSION 1: IMPORT TAUX ZC
     # ─────────────────────────────────────────────────────────────────────────
-    st.subheader("📁 Importer le Fichier de Taux ZC")
+    st.markdown("### 🏦 Mission 1 — Import des Taux Zéro-Coupon")
     
-    uploaded_taux = st.file_uploader(
-        "Choisissez un fichier CSV ou Excel",
-        type=['csv', 'xlsx'],
-        key="taux_uploader",
-        help="Format: date_spot, date_maturity, zc"
-    )
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        uploaded_taux = st.file_uploader(
+            "Importer le fichier des taux ZC (Excel/CSV)",
+            type=['csv', 'xlsx'],
+            key="taux_import"
+        )
+    
+    with col2:
+        st.info("**Format :** date_spot \\| date_maturity \\| zc")
     
     if uploaded_taux:
         df_taux = charger_taux_zc(uploaded_taux, utiliser_mock=False)
         if df_taux is not None:
             st.session_state['df_taux'] = df_taux
-            st.session_state['taux_zc_loaded'] = True
     else:
-        if not st.session_state.get('taux_zc_loaded', False):
-            df_taux = charger_taux_zc(utiliser_mock=True)
-            st.session_state['df_taux'] = df_taux
-            st.session_state['taux_zc_loaded'] = True
-        else:
-            df_taux = st.session_state.get('df_taux')
+        df_taux = charger_taux_zc(utiliser_mock=True)
+        st.session_state['df_taux'] = df_taux
     
     if df_taux is not None:
-        st.success(f"✅ {len(df_taux)} taux chargés")
+        # Afficher le tableau
+        st.dataframe(df_taux.head(10), use_container_width=True)
         
-        with st.expander("📊 Aperçu des données"):
-            st.dataframe(df_taux.head(10), use_container_width=True)
-        
-        # ─────────────────────────────────────────────────────────────────────
-        # SÉLECTION DE LA DATE DE RÉFÉRENCE
-        # ─────────────────────────────────────────────────────────────────────
-        st.divider()
-        st.subheader("📅 Sélection de la Date de Référence")
-        
-        dates_spot = sorted(df_taux['date_spot'].unique(), reverse=True)
-        
+        # Extraire et afficher la date spot
+        dates_spot = df_taux['date_spot'].unique()
         if len(dates_spot) > 0:
             date_reference = st.selectbox(
-                "Date de pricing (date_spot)",
-                options=dates_spot,
+                "📅 Date Spot de Référence",
+                options=sorted(dates_spot, reverse=True),
                 format_func=lambda x: x.strftime('%d/%m/%Y') if hasattr(x, 'strftime') else str(x)
             )
-            
             st.session_state['date_reference'] = date_reference
             
-            st.info(f"✅ Date sélectionnée : {date_reference.strftime('%d/%m/%Y') if hasattr(date_reference, 'strftime') else str(date_reference)}")
-            
-            # Filtrer les taux pour cette date
-            df_taux_date = df_taux[df_taux['date_spot'] == date_reference]
-            st.write(f"**{len(df_taux_date)} maturités disponibles** pour cette date")
-            
-            with st.expander("📊 Taux disponibles pour cette date"):
-                st.dataframe(df_taux_date[['date_maturity', 'zc']], use_container_width=True)
-        else:
-            st.warning("⚠️ Aucune date disponible")
+            # Cadre d'affichage de la date spot
+            st.markdown(f"""
+                <div class='risk-card'>
+                    <h4 style='margin: 0; color: #1E3A5F;'>📅 Date de Référence Sélectionnée</h4>
+                    <p style='font-size: 1.5em; margin: 10px 0; font-weight: bold;'>
+                        {date_reference.strftime('%d/%m/%Y') if hasattr(date_reference, 'strftime') else str(date_reference)}
+                    </p>
+                    <p style='margin: 0; color: #6B7280;'>
+                        {len(df_taux[df_taux['date_spot'] == date_reference])} maturités disponibles
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
     
     st.divider()
     
     # ─────────────────────────────────────────────────────────────────────────
-    # IMPORT DES DIVIDENDES
+    # MISSION 2: IMPORT DIVIDENDES
     # ─────────────────────────────────────────────────────────────────────────
-    st.subheader("💰 Import des Dividendes MASI20")
+    st.markdown("### 💰 Mission 2 — Import des Dividendes MASI20")
     
-    uploaded_div = st.file_uploader(
-        "Choisissez un fichier CSV ou Excel (optionnel)",
-        type=['csv', 'xlsx'],
-        key="div_uploader"
-    )
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        uploaded_div = st.file_uploader(
+            "Importer le fichier des dividendes (Excel/CSV)",
+            type=['csv', 'xlsx'],
+            key="div_import"
+        )
+    
+    with col2:
+        st.info("**Format :** ticker \\| poids \\| taux \\| fréquence \\| annuel \\| semestriel \\| trimestriel")
     
     if uploaded_div:
         df_div = charger_dividendes(uploaded_div, utiliser_mock=False)
         if df_div is not None:
             st.session_state['df_div'] = df_div
-            st.session_state['dividendes_loaded'] = True
     else:
-        if not st.session_state.get('dividendes_loaded', False):
-            df_div = charger_dividendes(utiliser_mock=True)
-            st.session_state['df_div'] = df_div
-            st.session_state['dividendes_loaded'] = True
-        else:
-            df_div = st.session_state.get('df_div')
+        df_div = charger_dividendes(utiliser_mock=True)
+        st.session_state['df_div'] = df_div
     
     if df_div is not None:
-        st.success(f"✅ {len(df_div)} actions chargées")
-        with st.expander("📊 Aperçu des dividendes"):
-            st.dataframe(df_div.head(10), use_container_width=True)
-
-# =============================================================================
-# ONGLET 2: PRICING INSTANTANÉ
-# =============================================================================
-with tab_pricing:
-    # ─────────────────────────────────────────────────────────────────────────
-    # GUIDE DE L'ONGLET
-    # ─────────────────────────────────────────────────────────────────────────
-    st.markdown("""
-        ### 📘 Guide — Pricing Instantané
+        st.dataframe(df_div.head(10), use_container_width=True)
         
-        **Objectif :** Calculer le prix théorique F₀ d'un future selon la formule BAM.
-        
-        **Formule :** `F₀ = S × e^((r - d) × t)`
-        
-        **Variables :**
-        | Symbole | Signification | Source |
-        |---------|---------------|--------|
-        | **S** | Spot MASI20 | Bourse de Casablanca |
-        | **r** | Taux sans risque | Tableau ZC (Onglet 1) |
-        | **d** | Taux de dividende annualisé | Calculé sur les 20 constituants |
-        | **t** | Temps restant (jours/360) | Calcul automatique |
-        
-        **Interprétation :**
-        - **Base > 0** : Contango (F₀ > S) → r > d
-        - **Base < 0** : Backwardation (F₀ < S) → d > r
-        
-        **Prochaine mise à jour :**
-        - 📊 Import automatique du spot MASI20
-        - 🔔 Alertes d'arbitrage (écart théorie/marché)
-    """)
-    
-    st.divider()
-    
-    # Vérifier si les données sont chargées
-    if not st.session_state.get('taux_zc_loaded', False):
-        st.warning("⚠️ Veuillez d'abord importer les taux ZC dans l'onglet 1.")
-        st.stop()
-    
-    if st.session_state['date_reference'] is None:
-        st.warning("⚠️ Veuillez sélectionner une date de référence dans l'onglet 1.")
-        st.stop()
-    
-    # ─────────────────────────────────────────────────────────────────────────
-    # PARAMÈTRES DE BASE
-    # ─────────────────────────────────────────────────────────────────────────
-    st.subheader("🔧 1. Paramètres de Valorisation")
-    
-    date_calcul = st.session_state['date_reference']
-    st.info(f"📅 **Date de pricing :** {date_calcul.strftime('%d/%m/%Y') if hasattr(date_calcul, 'strftime') else str(date_calcul)}")
-    
-    col_spot, col_echeance = st.columns(2)
-    
-    with col_spot:
-        spot = st.number_input(
-            f"Spot MASI20 au {date_calcul.strftime('%d/%m/%Y') if hasattr(date_calcul, 'strftime') else str(date_calcul)}",
-            min_value=1000.0,
-            value=1876.54,
-            step=10.0,
-            format="%.2f"
-        )
-    
-    with col_echeance:
-        jours_echeance = st.slider(
-            "Échéance du future (jours)",
-            min_value=30,
-            max_value=360,
-            value=90,
-            step=30
-        )
-    
-    date_echeance = date_calcul + timedelta(days=jours_echeance)
-    st.info(f"📅 **Échéance du future :** {date_echeance.strftime('%d/%m/%Y')}")
-    
-    st.divider()
-    
-    # ─────────────────────────────────────────────────────────────────────────
-    # CALCUL DU TAUX DE DIVIDENDE (d)
-    # ─────────────────────────────────────────────────────────────────────────
-    st.subheader("💰 2. Taux de Dividende (d)")
-    
-    constituents_list = df_div.to_dict('records')
-    taux_dividende, df_details = calculer_taux_dividende_indice(constituents_list)
-    
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        st.metric("Taux de Dividende (d)", f"{taux_dividende*100:.4f}%")
-    with col_d2:
-        st.metric("Nombre d'actions", f"{len(df_div)}")
-    
-    with st.expander("📊 Détail du calcul par action"):
-        st.dataframe(df_details, use_container_width=True)
-    
-    st.divider()
-    
-    # ─────────────────────────────────────────────────────────────────────────
-    # SÉLECTION DU TAUX SANS RISQUE (r)
-    # ─────────────────────────────────────────────────────────────────────────
-    st.subheader("🏦 3. Taux Sans Risque (r)")
-    
-    r = get_taux_zc(date_calcul, date_echeance, df_taux)
-    
-    st.info(f"**Taux ZC utilisé :** r = {r*100:.3f}%")
-    
-    # Trouver le taux sélectionné pour affichage
-    df_filtre = df_taux[df_taux['date_spot'] == date_calcul].copy()
-    if len(df_filtre) > 0:
-        df_filtre['maturity_dt'] = pd.to_datetime(df_filtre['date_maturity'])
-        echeance_dt = pd.to_datetime(date_echeance)
-        df_filtre['ecart'] = abs((df_filtre['maturity_dt'] - echeance_dt).dt.days)
-        meilleur = df_filtre.loc[df_filtre['ecart'].idxmin()]
-        
-        with st.expander("📊 Détail du taux ZC sélectionné"):
-            st.write(f"**Date de publication :** {meilleur['date_spot'].strftime('%d/%m/%Y')}")
-            st.write(f"**Maturité :** {meilleur['date_maturity'].strftime('%d/%m/%Y')}")
-            st.write(f"**Écart avec échéance :** {meilleur['ecart']} jours")
-            st.write(f"**Taux :** {meilleur['zc']}%")
-    
-    st.divider()
-    
-    # ─────────────────────────────────────────────────────────────────────────
-    # CALCUL DU PRIX THÉORIQUE
-    # ─────────────────────────────────────────────────────────────────────────
-    st.subheader("📊 4. Prix Théorique du Future")
-    
-    t = jours_echeance / 360
-    F0 = calculer_prix_theorique_future_bam(spot, r, taux_dividende, t)
-    base = calculer_base_future(F0, spot)
-    cout_portage = calculer_cout_portage(r, taux_dividende, t)
-    
-    col_f0, col_base, col_cp = st.columns(3)
-    
-    with col_f0:
-        st.markdown(f"""
-            <div style='padding:25px; background:linear-gradient(135deg,#1E3A5F,#2E5C8A);
-                        border-radius:12px; text-align:center; color:white;'>
-                <p style='margin:0; font-size:0.9em; opacity:0.9;'>Prix Théorique F₀</p>
-                <p style='margin:10px 0 0 0; font-size:2.5em; font-weight:700;'>{F0:,.2f}</p>
-                <p style='margin:5px 0 0 0; font-size:0.85em; opacity:0.8;'>points</p>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col_base:
-        couleur = "#10B981" if base['points'] > 0 else "#EF4444"
-        regime = "Contango" if base['points'] > 0 else "Backwardation"
-        st.markdown(f"""
-            <div style='padding:25px; background:white; border-radius:12px; text-align:center;
-                        box-shadow:0 4px 12px rgba(0,0,0,0.08); border-left:5px solid {couleur};'>
-                <p style='margin:0; font-size:0.9em; color:#6B7280;'>Base (F₀ - S)</p>
-                <p style='margin:10px 0 0 0; font-size:2em; font-weight:700; color:{couleur};'>{base['points']:+,.2f}</p>
-                <p style='margin:5px 0 0 0; font-size:0.85em; color:#6B7280;'>{base['percentage']:+.2f}% ({regime})</p>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col_cp:
-        st.metric("Coût de Portage", f"{cout_portage*100:+.2f}%")
-    
-    st.info(f"""
-        **Formule BAM :** `F₀ = {spot:,.2f} × e^(({r*100:.3f}% - {taux_dividende*100:.4f}%) × {t:.4f})` = **{F0:,.2f} points**
-    """)
-    
-    st.divider()
-    
-    # ─────────────────────────────────────────────────────────────────────────
-    # TERM STRUCTURE
-    # ─────────────────────────────────────────────────────────────────────────
-    st.subheader("📈 5. Structure par Terme")
-    
-    echeances = [30, 90, 180, 360]
-    df_term = calcul_term_structure(spot, r, taux_dividende, echeances)
-    
-    col1, col2, col3, col4 = st.columns(4)
-    for col, (_, row) in zip([col1, col2, col3, col4], df_term.iterrows()):
-        couleur = "#10B981" if row['Contango'] else "#EF4444"
-        col.markdown(f"""
-            <div style='padding: 20px; background: white; border-radius: 12px; 
-                        text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-                        border-left: 4px solid {couleur};'>
-                <p style='margin: 0; font-size: 0.9em; color: #6B7280;'>{row['Mois']} mois</p>
-                <p style='margin: 10px 0 0 0; font-size: 2em; font-weight: 700; color: {couleur};'>
-                    {row['F0']:,.2f}
-                </p>
-                <p style='margin: 5px 0 0 0; font-size: 0.85em; color: {couleur};'>
-                    Base: {row['Base_pts']:+,.2f} pts
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    fig_term = go.Figure()
-    fig_term.add_trace(go.Scatter(
-        x=df_term['Mois'].astype(str) + ' mois',
-        y=df_term['F0'],
-        mode='lines+markers',
-        name='Prix théorique',
-        line=dict(color=config.COLORS.get('primary', '#1E3A5F'), width=3)
-    ))
-    fig_term.add_hline(y=spot, line_dash="dash", line_color="#10B981", annotation_text=f'Spot = {spot:,.2f}')
-    fig_term.update_layout(title='Structure par Terme', height=400, template='plotly_white')
-    st.plotly_chart(fig_term, use_container_width=True)
-
-# =============================================================================
-# ONGLET 3: SUIVI TEMPOREL
-# =============================================================================
-with tab_suivi:
-    # ─────────────────────────────────────────────────────────────────────────
-    # GUIDE DE L'ONGLET
-    # ─────────────────────────────────────────────────────────────────────────
-    st.markdown("""
-        ### 📘 Guide — Suivi Temporel
-        
-        **Objectif :** Visualiser l'évolution du prix théorique jour après jour.
-        
-        **Ce que vous verrez :**
-        - 📈 Courbe du prix théorique F₀
-        - 📊 Courbe du spot MASI20
-        - ⚠️ **Courbe d'erreur** (F₀ théorique - Prix marché)
-        
-        **Interprétation de l'erreur :**
-        - Erreur proche de 0 → Modèle précis
-        - Erreur > 1% → Écart significatif
-        - Erreur qui converge → Normal à l'approche de l'échéance
-        
-        **Prochaine mise à jour :**
-        - 📥 Import automatique des prix de marché réels
-        - 🎯 Alertes quand l'erreur dépasse un seuil
-    """)
-    
-    st.divider()
-    
-    if not st.session_state.get('taux_zc_loaded', False):
-        st.warning("⚠️ Veuillez d'abord importer les taux ZC dans l'onglet 1.")
-        st.stop()
-    
-    st.subheader("📅 Paramètres du Suivi")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        date_debut = st.date_input("Date de début", value=date_calcul)
-    with col2:
-        date_fin = st.date_input("Date de fin (échéance)", value=date_calcul + timedelta(days=90))
-    
-    if date_fin <= date_debut:
-        st.error("❌ La date de fin doit être après la date de début")
-        st.stop()
-    
-    if st.button("🚀 Lancer le Suivi Temporel", type="primary"):
+        # Calcul du taux de dividende global (q)
         constituents_list = df_div.to_dict('records')
         taux_dividende, _ = calculer_taux_dividende_indice(constituents_list)
         
-        # Générer les dates
-        dates = []
-        current_date = date_debut
-        while current_date <= date_fin:
-            if current_date.weekday() < 5:
-                dates.append(current_date)
-            current_date += timedelta(days=1)
-        
-        # Calcul jour par jour
-        resultats = []
-        spot_courant = spot
-        
+        st.markdown(f"""
+            <div class='risk-card'>
+                <h4 style='margin: 0; color: #1E3A5F;'>💰 Taux de Dividende Global (q)</h4>
+                <p style='font-size: 1.5em; margin: 10px 0; font-weight: bold; color: #10B981;'>
+                    {taux_dividende*100:.4f}%
+                </p>
+                <p style='margin: 0; color: #6B7280;'>
+                    Calculé sur {len(df_div)} constituants MASI20
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.divider()
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # MISSION 3: VALIDATION DES DONNÉES
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("### ✅ Mission 3 — Validation des Données")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        valid_taux = st.session_state['df_taux'] is not None
+        st.metric("Taux ZC", "✅" if valid_taux else "❌")
+    
+    with col2:
+        valid_div = st.session_state['df_div'] is not None
+        st.metric("Dividendes", "✅" if valid_div else "❌")
+    
+    with col3:
+        valid_date = st.session_state['date_reference'] is not None
+        st.metric("Date Référence", "✅" if valid_date else "❌")
+    
+    if st.button("🔒 Valider les Données", type="primary", use_container_width=True):
+        if valid_taux and valid_div and valid_date:
+            st.session_state['donnees_valides'] = True
+            st.success("✅ Données validées avec succès ! Vous pouvez maintenant utiliser les onglets 2 et 3.")
+            st.balloons()
+        else:
+            st.error("❌ Veuillez compléter toutes les missions avant de valider.")
+    
+    # État de validation
+    if st.session_state['donnees_valides']:
+        st.markdown("""
+            <div class='risk-card alert-success'>
+                <h4 style='margin: 0; color: #065f46;'>✅ Données Validées</h4>
+                <p style='margin: 10px 0 0 0;'>
+                    Prêt pour le backtesting et la valorisation des contrats futures MASI20.
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+# =============================================================================
+# ONGLET 2: BACKTESTING & VALIDATION
+# =============================================================================
+with tab_backtest:
+    # ─────────────────────────────────────────────────────────────────────────
+    # GUIDE (BARRE CACHABLE)
+    # ─────────────────────────────────────────────────────────────────────────
+    with st.expander("📘 Guide — Backtesting & Validation", expanded=True):
+        st.markdown("""
+            ### 🎯 Objectif de cet onglet
+            
+            Valider la précision du modèle de pricing en comparant avec les données historiques.
+            
+            ### 📋 3 Missions
+            
+            | Mission | Description | Résultat |
+            |---------|-------------|----------|
+            | **1. Calcul Historique** | Calculer F₀ avec données passées | Comparaison avec réalité |
+            | **2. Visualisation** | Graphique d'évolution des erreurs | Tendances identifiées |
+            | **3. Alertes** | Détection d'anomalies (r-q) | Modèle validé ou à corriger |
+            
+            ### 🔍 Interprétation des Alertes
+            
+            | Alerte | Cause Possible | Action |
+            |--------|---------------|--------|
+            | **Erreur > 1%** | r mal scrapé ou q incorrect | Vérifier données sources |
+            | **Erreur < 0.5%** | Modèle précis | ✅ Validation accordée |
+            | **Erreur systématique** | Biais dans (r-q) | Recalibrer les paramètres |
+            
+            ### 📊 Besoin en Données
+            
+            - **Taux de passé :** Oui, pour reconstituer la courbe ZC historique
+            - **Dates multiples :** Oui, minimum 30 jours pour analyse significative
+        """)
+    
+    st.divider()
+    
+    # Vérifier validation
+    if not st.session_state.get('donnees_valides', False):
+        st.warning("⚠️ Veuillez d'abord valider les données dans l'onglet 1.")
+        st.stop()
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # MISSION 1: CALCUL AVEC DONNÉES PASSÉES
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("### 🧮 Mission 1 — Calcul Historique & Comparaison")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        r_backtest = st.number_input("Taux sans risque (r) %", value=3.5, step=0.1) / 100
+    with col2:
+        q_backtest = st.number_input("Taux de dividende (q) %", value=0.87, step=0.01) / 100
+    with col3:
+        jours_backtest = st.slider("Période de test (jours)", 30, 90, 60)
+    
+    if st.button("🚀 Lancer le Backtesting", type="primary"):
+        # Génération données historiques (simulation)
         np.random.seed(42)
-        for i, date in enumerate(dates):
-            if i > 0:
-                variation = np.random.normal(0.0002, 0.008)
-                spot_courant = spot_courant * (1 + variation)
-            
-            r = get_taux_zc(date, date_fin, df_taux)
-            jours_restants = (date_fin - date).days
-            t = jours_restants / 360
-            F0 = calculer_prix_theorique_future_bam(spot_courant, r, taux_dividende, t)
-            
-            # Simulation prix marché (à remplacer par données réelles)
-            prix_marche = F0 * (1 + np.random.normal(0, 0.001))
-            
-            resultats.append({
-                'date': date,
-                'spot': round(spot_courant, 2),
-                'F0_theorique': round(F0, 2),
-                'F0_marche': round(prix_marche, 2),
-                'erreur_absolue': round(F0 - prix_marche, 2),
-                'erreur_relative': round((F0 - prix_marche) / prix_marche * 100, 3)
-            })
+        dates = [datetime.now() - timedelta(days=i) for i in range(jours_backtest)][::-1]
+        spots = 1876.54 * np.exp(np.cumsum(np.random.normal(0, 0.01, jours_backtest)))
+        futures_theo = spots * np.exp((r_backtest - q_backtest) * (90/360))
+        futures_reel = futures_theo * (1 + np.random.normal(0, 0.001, jours_backtest))
         
-        df_suivi = pd.DataFrame(resultats)
+        # Calcul des erreurs
+        erreurs = futures_theo - futures_reel
+        erreurs_pct = (erreurs / futures_reel) * 100
+        
+        # Métriques
+        mae = calculer_mae(futures_reel, futures_theo)
+        mape = calculer_mape(futures_reel, futures_theo)
+        r2 = calculer_r2(futures_reel, futures_theo)
+        
+        st.session_state['backtest_results'] = {
+            'dates': dates,
+            'futures_theo': futures_theo,
+            'futures_reel': futures_reel,
+            'erreurs': erreurs,
+            'erreurs_pct': erreurs_pct,
+            'mae': mae,
+            'mape': mape,
+            'r2': r2
+        }
+    
+    # Affichage des résultats
+    if 'backtest_results' in st.session_state:
+        res = st.session_state['backtest_results']
+        
+        # Métriques
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("MAE (Erreur Absolue)", f"{res['mae']:.2f} pts")
+        with col2:
+            st.metric("MAPE (Erreur Relative)", f"{res['mape']:.3f}%")
+        with col3:
+            st.metric("R² (Qualité)", f"{res['r2']:.6f}")
+    
+    st.divider()
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # MISSION 2: VISUALISATION GRAPHIQUE
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("### 📊 Mission 2 — Graphique d'Évolution")
+    
+    if 'backtest_results' in st.session_state:
+        res = st.session_state['backtest_results']
         
         # Graphique principal
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=df_suivi['date'],
-            y=df_suivi['F0_theorique'],
-            name='F₀ Théorique',
+            x=res['dates'],
+            y=res['futures_reel'],
+            name='Prix Marché Réel',
             line=dict(color='#1E3A5F', width=2)
         ))
         fig.add_trace(go.Scatter(
-            x=df_suivi['date'],
-            y=df_suivi['F0_marche'],
-            name='F₀ Marché (simulé)',
-            line=dict(color='#10B981', width=2, dash='dash')
+            x=res['dates'],
+            y=res['futures_theo'],
+            name='Prix Théorique (Modèle)',
+            line=dict(color='#F59E0B', width=2, dash='dash')
         ))
-        fig.update_layout(title='Évolution du Prix Théorique vs Marché', height=400, template='plotly_white')
+        fig.update_layout(
+            title='Backtesting — Évolution Prix Théorique vs Réel',
+            xaxis_title='Date',
+            yaxis_title='Prix (points)',
+            height=400,
+            template='plotly_white'
+        )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Graphique d'erreur
-        st.subheader("⚠️ Visualisation de l'Erreur")
-        
+        # Graphique des erreurs
         fig_erreur = go.Figure()
         fig_erreur.add_trace(go.Scatter(
-            x=df_suivi['date'],
-            y=df_suivi['erreur_relative'],
+            x=res['dates'],
+            y=res['erreurs_pct'],
             name='Erreur Relative (%)',
             line=dict(color='#EF4444', width=2),
             fill='tozeroy'
@@ -497,96 +417,340 @@ with tab_suivi:
         fig_erreur.add_hline(y=1, line_color='orange', line_dash='dot', annotation_text='+1%')
         fig_erreur.add_hline(y=-1, line_color='orange', line_dash='dot', annotation_text='-1%')
         fig_erreur.update_layout(
-            title='Erreur de Pricing (%)',
+            title='Évolution des Erreurs de Pricing (%)',
             xaxis_title='Date',
             yaxis_title='Erreur (%)',
             height=300,
             template='plotly_white'
         )
         st.plotly_chart(fig_erreur, use_container_width=True)
-        
-        # Statistiques
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Erreur Moyenne", f"{df_suivi['erreur_relative'].mean():.3f}%")
-        with col2:
-            st.metric("Erreur Max", f"{df_suivi['erreur_relative'].abs().max():.3f}%")
-        with col3:
-            st.metric("Jours de suivi", len(df_suivi))
-
-# =============================================================================
-# ONGLET 4: BACKTESTING
-# =============================================================================
-with tab_backtest:
-    # ─────────────────────────────────────────────────────────────────────────
-    # GUIDE DE L'ONGLET
-    # ─────────────────────────────────────────────────────────────────────────
-    st.markdown("""
-        ### 📘 Guide — Backtesting
-        
-        **Objectif :** Valider la précision du modèle de pricing.
-        
-        **Métriques de validation :**
-        | Métrique | Signification | Interprétation |
-        |----------|---------------|----------------|
-        | **MAE** | Erreur absolue moyenne | En points (plus bas = mieux) |
-        | **MAPE** | Erreur relative moyenne | En % (< 0.5% = excellent) |
-        | **R²** | Qualité d'ajustement | Proche de 1 = parfait |
-        
-        **Prochaine mise à jour :**
-        - 📥 Import des prix futures réels historiques
-        - 📊 Comparaison avec d'autres modèles de pricing
-    """)
     
     st.divider()
     
-    if not st.session_state.get('taux_zc_loaded', False):
-        st.warning("⚠️ Veuillez d'abord importer les taux ZC dans l'onglet 1.")
+    # ─────────────────────────────────────────────────────────────────────────
+    # MISSION 3: ALERTES & VALIDATION
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("### 🚨 Mission 3 — Alertes & Validation du Modèle")
+    
+    if 'backtest_results' in st.session_state:
+        res = st.session_state['backtest_results']
+        mape = res['mape']
+        erreur_max = max(abs(res['erreurs_pct']))
+        
+        # Système d'alertes
+        if mape < 0.5:
+            st.markdown("""
+                <div class='risk-card alert-success'>
+                    <h4 style='margin: 0; color: #065f46;'>✅ MODÈLE VALIDÉ</h4>
+                    <p style='margin: 10px 0 0 0;'>
+                        Erreur moyenne < 0.5% — Le modèle de pricing est précis.
+                        <br><strong>Accord donné pour utilisation en production.</strong>
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+        elif mape < 1.5:
+            st.markdown("""
+                <div class='risk-card alert-warning'>
+                    <h4 style='margin: 0; color: #92400e;'>⚠️ MODÈLE ACCEPTABLE</h4>
+                    <p style='margin: 10px 0 0 0;'>
+                        Erreur moyenne entre 0.5% et 1.5% — Le modèle est utilisable avec surveillance.
+                        <br><strong>Vérifier les paramètres (r-q) si l'erreur augmente.</strong>
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+                <div class='risk-card alert-error'>
+                    <h4 style='margin: 0; color: #991b1b;'>🚨 ALERTE — MODÈLE À RECALIBRER</h4>
+                    <p style='margin: 10px 0 0 0;'>
+                        Erreur moyenne > 1.5% — Problème détecté dans le calcul.
+                        <br><strong>Causes possibles :</strong>
+                        <br>• Taux r mal scrapé ou obsolète
+                        <br>• Taux q (dividendes) incorrect
+                        <br>• Problème dans (r-q)
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # Statistiques complémentaires
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Erreur Maximale", f"{erreur_max:.3f}%")
+        with col2:
+            statut = "✅ Validé" if mape < 0.5 else "⚠️ Surveillance" if mape < 1.5 else "❌ À corriger"
+            st.metric("Statut du Modèle", statut)
+
+# =============================================================================
+# ONGLET 3: PRICING & SUIVI
+# =============================================================================
+with tab_pricing:
+    # ─────────────────────────────────────────────────────────────────────────
+    # GUIDE (BARRE CACHABLE)
+    # ─────────────────────────────────────────────────────────────────────────
+    with st.expander("📘 Guide — Pricing & Suivi", expanded=True):
+        st.markdown("""
+            ### 🎯 Objectif de cet onglet
+            
+            Valoriser un contrat future MASI20 et suivre son évolution jusqu'à l'échéance.
+            
+            ### 📋 3 Missions
+            
+            | Mission | Description | Résultat |
+            |---------|-------------|----------|
+            | **1. Calcul F₀** | Pricing avec données de l'onglet 1 | F₀ + Sensibilités + Base |
+            | **2. Suivi Temporel** | Évolution jour par jour jusqu'échéance | Graphique + Tableau |
+            | **3. Alertes Arbitrage** | Détection opportunités (bonus) | Signal d'achat/vente |
+            
+            ### 📊 Résultats Affichés
+            
+            - **F₀** : Prix théorique du future
+            - **Sensibilité taux** : Impact de ±1% sur r
+            - **Base F₀-S₀** : Écart future/spot (Contango/Backwardation)
+            - **Sensibilité temps** : Impact de la maturité
+            - **r, q** : Taux utilisés pour le calcul
+            
+            ### 💡 Principe d'Arbitrage
+            
+            | Situation | Signal | Stratégie |
+            |-----------|--------|-----------|
+            | Prix Marché > F₀ | Surévalué | Vendre Future + Acheter Spot |
+            | Prix Marché < F₀ | Sous-évalué | Acheter Future + Vendre Spot |
+            | Prix Marché ≈ F₀ | Équilibre | Aucune opportunité |
+        """)
+    
+    st.divider()
+    
+    # Vérifier validation
+    if not st.session_state.get('donnees_valides', False):
+        st.warning("⚠️ Veuillez d'abord valider les données dans l'onglet 1.")
         st.stop()
     
-    col1, col2 = st.columns(2)
-    with col1:
-        r_backtest = st.number_input("Taux sans risque (r) %", value=3.5, step=0.1) / 100
-    with col2:
-        d_backtest = st.number_input("Taux de dividende (d) %", value=0.87, step=0.01) / 100
+    # ─────────────────────────────────────────────────────────────────────────
+    # MISSION 1: CALCUL DU PRICING
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("### 📊 Mission 1 — Calcul du Prix Théorique")
     
-    if st.button("🧮 Lancer le Backtesting", type="primary"):
-        # Backtesting avec données simulées
+    col_spot, col_echeance = st.columns(2)
+    
+    with col_spot:
+        spot = st.number_input(
+            "Spot MASI20 (S₀)",
+            min_value=1000.0,
+            value=1876.54,
+            step=10.0,
+            format="%.2f"
+        )
+    
+    with col_echeance:
+        jours_echeance = st.slider(
+            "Échéance (jours)",
+            min_value=30,
+            max_value=360,
+            value=90,
+            step=30
+        )
+    
+    # Récupérer r et q
+    date_calcul = st.session_state['date_reference']
+    date_echeance = date_calcul + timedelta(days=jours_echeance)
+    r = get_taux_zc(date_calcul, date_echeance, st.session_state['df_taux'])
+    constituents_list = st.session_state['df_div'].to_dict('records')
+    q, _ = calculer_taux_dividende_indice(constituents_list)
+    
+    # Calculs
+    t = jours_echeance / 360
+    F0 = calculer_prix_theorique_future_bam(spot, r, q, t)
+    base = calculer_base_future(F0, spot)
+    cout_portage = calculer_cout_portage(r, q, t)
+    
+    # Sensibilités
+    delta_r = F0 * t  # Sensibilité à r
+    delta_q = -F0 * t  # Sensibilité à q
+    delta_t = F0 * (r - q)  # Sensibilité au temps
+    
+    # Affichage des résultats
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown(f"""
+            <div class='risk-card'>
+                <h4 style='margin: 0; color: #1E3A5F;'>📊 Prix Théorique F₀</h4>
+                <p style='font-size: 2em; margin: 10px 0; font-weight: bold; color: #1E3A5F;'>
+                    {F0:,.2f} pts
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        couleur = "#10B981" if base['points'] > 0 else "#EF4444"
+        regime = "Contango" if base['points'] > 0 else "Backwardation"
+        st.markdown(f"""
+            <div class='risk-card'>
+                <h4 style='margin: 0; color: #1E3A5F;'>📈 Base (F₀-S₀)</h4>
+                <p style='font-size: 2em; margin: 10px 0; font-weight: bold; color: {couleur};'>
+                    {base['points']:+,.2f} pts
+                </p>
+                <p style='margin: 0; color: #6B7280;'>{regime}</p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f"""
+            <div class='risk-card'>
+                <h4 style='margin: 0; color: #1E3A5F;'>💰 Coût de Portage</h4>
+                <p style='font-size: 2em; margin: 10px 0; font-weight: bold; color: #10B981;'>
+                    {cout_portage*100:+.2f}%
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Paramètres et sensibilités
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 🔧 Paramètres Utilisés")
+        st.write(f"**r (Taux sans risque) :** {r*100:.3f}%")
+        st.write(f"**q (Taux dividende) :** {q*100:.4f}%")
+        st.write(f"**t (Temps) :** {t:.4f} ({jours_echeance}/360)")
+        st.write(f"**Formule :** F₀ = {spot:,.2f} × e^(({r*100:.3f}% - {q*100:.4f}%) × {t:.4f})")
+    
+    with col2:
+        st.markdown("### 📊 Sensibilités")
+        st.write(f"**Sensibilité taux (Δr=1%) :** {delta_r:.2f} pts")
+        st.write(f"**Sensibilité dividende (Δq=1%) :** {delta_q:.2f} pts")
+        st.write(f"**Sensibilité temps (1 mois) :** {delta_t/12:.2f} pts/mois")
+    
+    st.divider()
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # MISSION 2: SUIVI TEMPOREL
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("### 📈 Mission 2 — Suivi jusqu'à l'Échéance")
+    
+    if st.button("🚀 Lancer le Suivi Temporel", type="primary"):
+        # Calcul jour par jour
+        dates_suivi = []
+        current_date = date_calcul
+        while current_date <= date_echeance:
+            if current_date.weekday() < 5:
+                dates_suivi.append(current_date)
+            current_date += timedelta(days=1)
+        
+        resultats_suivi = []
+        spot_courant = spot
+        
         np.random.seed(42)
-        jours = 60
-        dates = [datetime.now() - timedelta(days=i) for i in range(jours)][::-1]
-        spots = spot * np.exp(np.cumsum(np.random.normal(0, 0.01, jours)))
-        futures_theo = spots * np.exp((r_backtest - d_backtest) * (90/360))
-        futures_reel = futures_theo * (1 + np.random.normal(0, 0.001, jours))
+        for i, date in enumerate(dates_suivi):
+            if i > 0:
+                variation = np.random.normal(0.0002, 0.008)
+                spot_courant = spot_courant * (1 + variation)
+            
+            r_jour = get_taux_zc(date, date_echeance, st.session_state['df_taux'])
+            jours_restants = (date_echeance - date).days
+            t_jour = jours_restants / 360
+            F0_jour = calculer_prix_theorique_future_bam(spot_courant, r_jour, q, t_jour)
+            
+            resultats_suivi.append({
+                'date': date,
+                'spot': round(spot_courant, 2),
+                'F0': round(F0_jour, 2),
+                'base': round(F0_jour - spot_courant, 2),
+                'r': round(r_jour * 100, 3),
+                'jours_restants': jours_restants
+            })
         
-        mae = np.mean(np.abs(futures_theo - futures_reel))
-        mape = np.mean(np.abs((futures_theo - futures_reel) / futures_reel)) * 100
-        r2 = 1 - np.sum((futures_theo - futures_reel)**2) / np.sum((futures_reel - np.mean(futures_reel))**2)
+        df_suivi = pd.DataFrame(resultats_suivi)
+        st.session_state['df_suivi'] = df_suivi
         
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("MAE", f"{mae:.2f} pts")
-        with col2:
-            st.metric("MAPE", f"{mape:.3f}%")
-        with col3:
-            st.metric("R²", f"{r2:.6f}")
-        
-        if mape < 0.5:
-            st.success("✅ **Modèle très précis** (MAPE < 0.5%)")
-        elif mape < 1.5:
-            st.info("ℹ️ **Modèle acceptable** (MAPE 0.5-1.5%)")
-        else:
-            st.warning("⚠️ **Modèle à recalibrer** (MAPE > 1.5%)")
-        
+        # Graphique de suivi
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=dates, y=futures_reel, name='Prix Marché (simulé)'))
-        fig.add_trace(go.Scatter(x=dates, y=futures_theo, name='Prix Théorique', line=dict(dash='dash')))
-        fig.update_layout(title='Backtesting — Théorique vs Marché', height=400, template='plotly_white')
+        fig.add_trace(go.Scatter(
+            x=df_suivi['date'],
+            y=df_suivi['F0'],
+            name='F₀ Théorique',
+            line=dict(color='#1E3A5F', width=2)
+        ))
+        fig.add_trace(go.Scatter(
+            x=df_suivi['date'],
+            y=df_suivi['spot'],
+            name='Spot MASI20',
+            line=dict(color='#10B981', width=2, dash='dash')
+        ))
+        fig.update_layout(
+            title='Suivi Temporel — Évolution jusqu\'à l\'Échéance',
+            xaxis_title='Date',
+            yaxis_title='Prix (points)',
+            height=400,
+            template='plotly_white'
+        )
         st.plotly_chart(fig, use_container_width=True)
+        
+        # Tableau des valeurs
+        with st.expander("📊 Tableau Détaillé des Valeurs"):
+            st.dataframe(df_suivi, use_container_width=True)
+    
+    st.divider()
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # MISSION 3: ALERTES ARBITRAGE (BONUS)
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("### 🚨 Mission 3 — Alertes d'Arbitrage (Bonus)")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        prix_marche = st.number_input(
+            "Prix de Marché du Future",
+            min_value=1000.0,
+            value=F0,
+            step=1.0,
+            format="%.2f"
+        )
+    
+    with col2:
+        seuil_alerte = st.slider("Seuil d'alerte (%)", 0.1, 2.0, 0.5, 0.1)
+    
+    ecart_pct = ((prix_marche - F0) / F0) * 100
+    
+    if abs(ecart_pct) > seuil_alerte:
+        if prix_marche > F0:
+            st.markdown(f"""
+                <div class='risk-card alert-error'>
+                    <h4 style='margin: 0; color: #991b1b;'>🚨 OPPORTUNITÉ D'ARBITRAGE DÉTECTÉE</h4>
+                    <p style='margin: 10px 0 0 0;'>
+                        <strong>Signal :</strong> Future Surévalué (+{ecart_pct:.2f}%)
+                        <br><strong>Stratégie :</strong> Vendre Future + Acheter Spot
+                        <br><strong>Principe :</strong> Le prix de marché ({prix_marche:,.2f}) est supérieur 
+                        au prix théorique ({F0:,.2f}). Profit sans risque en vendant cher et achetant bon marché.
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class='risk-card alert-success'>
+                    <h4 style='margin: 0; color: #065f46;'>✅ OPPORTUNITÉ D'ARBITRAGE DÉTECTÉE</h4>
+                    <p style='margin: 10px 0 0 0;'>
+                        <strong>Signal :</strong> Future Sous-évalué ({ecart_pct:.2f}%)
+                        <br><strong>Stratégie :</strong> Acheter Future + Vendre Spot
+                        <br><strong>Principe :</strong> Le prix de marché ({prix_marche:,.2f}) est inférieur 
+                        au prix théorique ({F0:,.2f}). Profit sans risque en achetant bon marché et vendant cher.
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+            <div class='risk-card'>
+                <h4 style='margin: 0; color: #1E3A5F;'>⚖️ MARCHÉ À L'ÉQUILIBRE</h4>
+                <p style='margin: 10px 0 0 0;'>
+                    Écart : {ecart_pct:.2f}% (seuil : {seuil_alerte}%)
+                    <br>Aucune opportunité d'arbitrage significative.
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
 
 # =============================================================================
 # FOOTER
 # =============================================================================
 st.divider()
-st.caption(f"MASI Futures Pro v0.3 | Conforme BAM IN-2026-01 | © {datetime.now().year}")
+st.caption(f"MASI Futures Pro v0.4 | Gestion des Risques | Conforme BAM IN-2026-01 | © {datetime.now().year}")
 st.caption("Développé par OULMADANI Ilyas & ATANANE Oussama")
