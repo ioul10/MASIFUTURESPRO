@@ -245,8 +245,75 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# =============================================================================
+# ACCÈS RAPIDE AUX PAGES
+# =============================================================================
+st.markdown("### 🚀 Accès Rapide aux Pages")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("""
+        <a href="/Pricing" style="text-decoration: none; color: inherit;">
+            <div class='metric-card' style='border-top: 4px solid #1E3A5F;'>
+                <h3 style='font-size: 3em; margin: 0;'>🧮</h3>
+                <h4 style='margin: 15px 0 10px 0; color: #1E3A5F;'>Pricing & Risques</h4>
+                <p style='color: #6B7280; margin: 0;'>
+                    Prix théorique F₀, Term Structure, Backtesting
+                </p>
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""
+        <a href="/News" style="text-decoration: none; color: inherit;">
+            <div class='metric-card' style='border-top: 4px solid #10B981;'>
+                <h3 style='font-size: 3em; margin: 0;'>📰</h3>
+                <h4 style='margin: 15px 0 10px 0; color: #1E3A5F;'>News & Indices</h4>
+                <p style='color: #6B7280; margin: 0;'>
+                    Niveaux MASI/MASI20, Actualités, Graphiques
+                </p>
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown("""
+        <a href="/Suivi_Risques" style="text-decoration: none; color: inherit;">
+            <div class='metric-card' style='border-top: 4px solid #F59E0B;'>
+                <h3 style='font-size: 3em; margin: 0;'>📊</h3>
+                <h4 style='margin: 15px 0 10px 0; color: #1E3A5F;'>Suivi des Risques</h4>
+                <p style='color: #6B7280; margin: 0;'>
+                    VaR, P&L, Marges, Alertes
+                </p>
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
+
+# Boutons supplémentaires (optionnel)
+st.markdown("")
+col_b1, col_b2 = st.columns(2)
+
+with col_b1:
+    if st.button("🧮 Accéder au Module de Pricing", use_container_width=True, type="primary"):
+        st.switch_page("pages/02_🧮_Pricing.py")
+
+with col_b2:
+    if st.button("📊 Voir le Suivi des Risques", use_container_width=True):
+        st.switch_page("pages/03_📊_Suivi_Risques.py")
+
+st.divider()
+
 # Footer
-render_footer()     
+# =============================================================================
+# FOOTER
+# =============================================================================
+st.divider()
+st.caption(f"**MASI Futures Pro** v{config.APP_VERSION if hasattr(config, 'APP_VERSION') else '0.4'} Beta | Conforme BAM IN-2026-01")
+st.caption(f"© {datetime.now().year} — Développé par **OULMADANI Ilyas** & **ATANANE Oussama**")
+st.caption("📧 Contact : [ioulmadani@gmail.com]") 
+
 
 
 
