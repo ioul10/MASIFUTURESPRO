@@ -245,6 +245,8 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+st.divider()
+
 # =============================================================================
 # ACCÈS RAPIDE AUX PAGES
 # =============================================================================
@@ -313,6 +315,7 @@ st.divider()
 st.caption(f"**MASI Futures Pro** v{config.APP_VERSION if hasattr(config, 'APP_VERSION') else '0.4'} Beta | Conforme BAM IN-2026-01")
 st.caption(f"© {datetime.now().year} — Développé par **OULMADANI Ilyas** & **ATANANE Oussama**")
 st.caption("📧 Contact : [ioulmadani@gmail.com]") 
+
 
 
 
