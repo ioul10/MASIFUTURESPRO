@@ -91,6 +91,12 @@ if 'df_taux' not in st.session_state:
     st.session_state['df_taux'] = None
 if 'df_div' not in st.session_state:
     st.session_state['df_div'] = None
+if 'q_mode_auto' not in st.session_state:
+    st.session_state['q_mode_auto'] = False
+if 'q_manual' not in st.session_state:
+    st.session_state['q_manual'] = 0.87
+if 'q_calculated' not in st.session_state:
+    st.session_state['q_calculated'] = 0.0087
 
 # =============================================================================
 # CRÉATION DES ONGLETS PRINCIPAUX
@@ -151,7 +157,7 @@ with tab_import:
         )
     
     with col2:
-        st.info("**Format :** date_spot \\| date_maturity \\| zc")
+        st.info("**Format :** date_spot | date_maturity | zc")
     
     if uploaded_taux:
         df_taux = charger_taux_zc(uploaded_taux, utiliser_mock=False)
@@ -162,10 +168,8 @@ with tab_import:
         st.session_state['df_taux'] = df_taux
     
     if df_taux is not None:
-        # Afficher le tableau
         st.dataframe(df_taux.head(10), use_container_width=True)
         
-        # Extraire et afficher la date spot
         dates_spot = df_taux['date_spot'].unique()
         if len(dates_spot) > 0:
             date_reference = st.selectbox(
@@ -175,7 +179,6 @@ with tab_import:
             )
             st.session_state['date_reference'] = date_reference
             
-            # Cadre d'affichage de la date spot
             st.markdown(f"""
                 <div class='risk-card'>
                     <h4 style='margin: 0; color: #1E3A5F;'>📅 Date de Référence Sélectionnée</h4>
@@ -190,77 +193,66 @@ with tab_import:
     
     st.divider()
     
-# MISSION 2: TAUX DE DIVIDENDE (q)
-st.markdown("### 💰 Mission 2 — Taux de Dividende (q)")
-
-# Checkbox pour choisir le mode
-if 'q_mode_auto' not in st.session_state:
-    st.session_state['q_mode_auto'] = False
-
-q_mode_auto = st.checkbox(
-    "🔄 Utiliser l'import automatique (décocher pour saisie manuelle)",
-    value=st.session_state['q_mode_auto']
-)
-
-st.session_state['q_mode_auto'] = q_mode_auto
-
-st.divider()
-
-if q_mode_auto:
-    st.info("📁 Mode Import Automatique")
+    # ─────────────────────────────────────────────────────────────────────────
+    # MISSION 2: TAUX DE DIVIDENDE (q) — DOUBLE MODE
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("### 💰 Mission 2 — Taux de Dividende (q)")
     
-    uploaded_div = st.file_uploader(
-        "Importer le fichier des dividendes",
-        type=['csv', 'xlsx'],
-        key="div_import_auto"
+    q_mode_auto = st.checkbox(
+        "🔄 Utiliser l'import automatique (décocher pour saisie manuelle)",
+        value=st.session_state['q_mode_auto']
     )
+    st.session_state['q_mode_auto'] = q_mode_auto
     
-    if uploaded_div:
-        df_div = charger_dividendes(uploaded_div, utiliser_mock=False)
-        if df_div is not None:
-            st.session_state['df_div'] = df_div
-            constituents_list = df_div.to_dict('records')
-            taux_dividende, df_details = calculer_taux_dividende_indice(constituents_list)
-            st.session_state['q_calculated'] = taux_dividende
-            st.success("✅ Fichier chargé")
-    else:
-        if 'df_div' not in st.session_state:
-            df_div = charger_dividendes(utiliser_mock=True)
-            st.session_state['df_div'] = df_div
-            constituents_list = df_div.to_dict('records')
-            taux_dividende, _ = calculer_taux_dividende_indice(constituents_list)
-            st.session_state['q_calculated'] = taux_dividende
+    st.divider()
+    
+    if q_mode_auto:
+        st.info("📁 Mode Import Automatique")
+        
+        uploaded_div = st.file_uploader(
+            "Importer le fichier des dividendes",
+            type=['csv', 'xlsx'],
+            key="div_import_auto"
+        )
+        
+        if uploaded_div:
+            df_div = charger_dividendes(uploaded_div, utiliser_mock=False)
+            if df_div is not None:
+                st.session_state['df_div'] = df_div
+                constituents_list = df_div.to_dict('records')
+                taux_dividende, df_details = calculer_taux_dividende_indice(constituents_list)
+                st.session_state['q_calculated'] = taux_dividende
+                st.success("✅ Fichier chargé")
         else:
-            df_div = st.session_state['df_div']
-            taux_dividende = st.session_state.get('q_calculated', 0.0087)
+            if 'df_div' not in st.session_state:
+                df_div = charger_dividendes(utiliser_mock=True)
+                st.session_state['df_div'] = df_div
+                constituents_list = df_div.to_dict('records')
+                taux_dividende, _ = calculer_taux_dividende_indice(constituents_list)
+                st.session_state['q_calculated'] = taux_dividende
+            else:
+                df_div = st.session_state['df_div']
+                taux_dividende = st.session_state.get('q_calculated', 0.0087)
+        
+        if 'q_calculated' in st.session_state:
+            st.metric("Taux de Dividende (q)", f"{st.session_state['q_calculated']*100:.4f}%")
     
-    if 'q_calculated' in st.session_state:
-        st.metric("Taux de Dividende (q)", f"{st.session_state['q_calculated']*100:.4f}%")
-
-else:
-    st.info("✍️ Mode Saisie Manuelle")
+    else:
+        st.info("✍️ Mode Saisie Manuelle")
+        
+        q_input = st.number_input(
+            "Taux de dividende (q) %",
+            min_value=0.0,
+            max_value=10.0,
+            value=st.session_state['q_manual'],
+            step=0.01
+        )
+        
+        st.session_state['q_manual'] = q_input
+        st.session_state['q_calculated'] = q_input / 100
+        
+        st.metric("Taux de Dividende (q)", f"{q_input:.2f}%")
     
-    if 'q_manual' not in st.session_state:
-        st.session_state['q_manual'] = 0.87
-    
-    q_input = st.number_input(
-        "Taux de dividende (q) %",
-        min_value=0.0,
-        max_value=10.0,
-        value=st.session_state['q_manual'],
-        step=0.01
-    )
-    
-    st.session_state['q_manual'] = q_input
-    st.session_state['q_calculated'] = q_input / 100
-    
-    st.metric("Taux de Dividende (q)", f"{q_input:.2f}%")
-
-q_final = st.session_state.get('q_calculated', 0.0087)
-
-st.divider()
-mode_text = "🔄 Automatique" if q_mode_auto else "✍️ Manuel"
-st.caption(f"Mode: {mode_text} | q = {q_final*100:.4f}%")
     st.divider()
     
     # ─────────────────────────────────────────────────────────────────────────
@@ -275,7 +267,7 @@ st.caption(f"Mode: {mode_text} | q = {q_final*100:.4f}%")
         st.metric("Taux ZC", "✅" if valid_taux else "❌")
     
     with col2:
-        valid_div = st.session_state['df_div'] is not None
+        valid_div = st.session_state['df_div'] is not None or not q_mode_auto
         st.metric("Dividendes", "✅" if valid_div else "❌")
     
     with col3:
@@ -290,7 +282,6 @@ st.caption(f"Mode: {mode_text} | q = {q_final*100:.4f}%")
         else:
             st.error("❌ Veuillez compléter toutes les missions avant de valider.")
     
-    # État de validation
     if st.session_state['donnees_valides']:
         st.markdown("""
             <div class='risk-card alert-success'>
@@ -321,24 +312,10 @@ with tab_backtest:
             | **1. Calcul Historique** | Calculer F₀ avec données passées | Comparaison avec réalité |
             | **2. Visualisation** | Graphique d'évolution des erreurs | Tendances identifiées |
             | **3. Alertes** | Détection d'anomalies (r-q) | Modèle validé ou à corriger |
-            
-            ### 🔍 Interprétation des Alertes
-            
-            | Alerte | Cause Possible | Action |
-            |--------|---------------|--------|
-            | **Erreur > 1%** | r mal scrapé ou q incorrect | Vérifier données sources |
-            | **Erreur < 0.5%** | Modèle précis | ✅ Validation accordée |
-            | **Erreur systématique** | Biais dans (r-q) | Recalibrer les paramètres |
-            
-            ### 📊 Besoin en Données
-            
-            - **Taux de passé :** Oui, pour reconstituer la courbe ZC historique
-            - **Dates multiples :** Oui, minimum 30 jours pour analyse significative
         """)
     
     st.divider()
     
-    # Vérifier validation
     if not st.session_state.get('donnees_valides', False):
         st.warning("⚠️ Veuillez d'abord valider les données dans l'onglet 1.")
         st.stop()
@@ -358,18 +335,15 @@ with tab_backtest:
         jours_backtest = st.slider("Période de test (jours)", 30, 90, 60)
     
     if st.button("🚀 Lancer le Backtesting", type="primary"):
-        # Génération données historiques (simulation)
         np.random.seed(42)
         dates = [datetime.now() - timedelta(days=i) for i in range(jours_backtest)][::-1]
         spots = 1876.54 * np.exp(np.cumsum(np.random.normal(0, 0.01, jours_backtest)))
         futures_theo = spots * np.exp((r_backtest - q_backtest) * (90/360))
         futures_reel = futures_theo * (1 + np.random.normal(0, 0.001, jours_backtest))
         
-        # Calcul des erreurs
         erreurs = futures_theo - futures_reel
         erreurs_pct = (erreurs / futures_reel) * 100
         
-        # Métriques
         mae = calculer_mae(futures_reel, futures_theo)
         mape = calculer_mape(futures_reel, futures_theo)
         r2 = calculer_r2(futures_reel, futures_theo)
@@ -385,11 +359,9 @@ with tab_backtest:
             'r2': r2
         }
     
-    # Affichage des résultats
     if 'backtest_results' in st.session_state:
         res = st.session_state['backtest_results']
         
-        # Métriques
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("MAE (Erreur Absolue)", f"{res['mae']:.2f} pts")
@@ -400,80 +372,58 @@ with tab_backtest:
     
     st.divider()
     
-   # MISSION 2: TAUX DE DIVIDENDE (q)
-st.markdown("### 💰 Mission 2 — Taux de Dividende (q)")
-
-# Checkbox pour choisir le mode
-if 'q_mode_auto' not in st.session_state:
-    st.session_state['q_mode_auto'] = False
-
-q_mode_auto = st.checkbox(
-    "🔄 Utiliser l'import automatique (décocher pour saisie manuelle)",
-    value=st.session_state['q_mode_auto']
-)
-
-st.session_state['q_mode_auto'] = q_mode_auto
-
-st.divider()
-
-if q_mode_auto:
-    # MODE AUTOMATIQUE
-    st.info("📁 Mode Import Automatique")
+    # ─────────────────────────────────────────────────────────────────────────
+    # MISSION 2: VISUALISATION GRAPHIQUE
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown("### 📊 Mission 2 — Graphique d'Évolution")
     
-    uploaded_div = st.file_uploader(
-        "Importer le fichier des dividendes",
-        type=['csv', 'xlsx'],
-        key="div_import_auto"
-    )
+    if 'backtest_results' in st.session_state:
+        res = st.session_state['backtest_results']
+        
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=res['dates'],
+            y=res['futures_reel'],
+            name='Prix Marché Réel',
+            line=dict(color='#1E3A5F', width=2)
+        ))
+        fig.add_trace(go.Scatter(
+            x=res['dates'],
+            y=res['futures_theo'],
+            name='Prix Théorique (Modèle)',
+            line=dict(color='#F59E0B', width=2, dash='dash')
+        ))
+        fig.update_layout(
+            title='Backtesting — Évolution Prix Théorique vs Réel',
+            xaxis_title='Date',
+            yaxis_title='Prix (points)',
+            height=400,
+            template='plotly_white'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        fig_erreur = go.Figure()
+        fig_erreur.add_trace(go.Scatter(
+            x=res['dates'],
+            y=res['erreurs_pct'],
+            name='Erreur Relative (%)',
+            line=dict(color='#EF4444', width=2),
+            fill='tozeroy'
+        ))
+        fig_erreur.add_hline(y=0, line_color='black', line_dash='dash')
+        fig_erreur.add_hline(y=1, line_color='orange', line_dash='dot', annotation_text='+1%')
+        fig_erreur.add_hline(y=-1, line_color='orange', line_dash='dot', annotation_text='-1%')
+        fig_erreur.update_layout(
+            title='Évolution des Erreurs de Pricing (%)',
+            xaxis_title='Date',
+            yaxis_title='Erreur (%)',
+            height=300,
+            template='plotly_white'
+        )
+        st.plotly_chart(fig_erreur, use_container_width=True)
     
-    if uploaded_div:
-        df_div = charger_dividendes(uploaded_div, utiliser_mock=False)
-        if df_div is not None:
-            st.session_state['df_div'] = df_div
-            constituents_list = df_div.to_dict('records')
-            taux_dividende, df_details = calculer_taux_dividende_indice(constituents_list)
-            st.session_state['q_calculated'] = taux_dividende
-            st.success("✅ Fichier chargé")
-    else:
-        if 'df_div' not in st.session_state:
-            df_div = charger_dividendes(utiliser_mock=True)
-            st.session_state['df_div'] = df_div
-            constituents_list = df_div.to_dict('records')
-            taux_dividende, _ = calculer_taux_dividende_indice(constituents_list)
-            st.session_state['q_calculated'] = taux_dividende
-        else:
-            df_div = st.session_state['df_div']
-            taux_dividende = st.session_state.get('q_calculated', 0.0087)
+    st.divider()
     
-    if 'q_calculated' in st.session_state:
-        st.metric("Taux de Dividende (q)", f"{st.session_state['q_calculated']*100:.4f}%")
-
-else:
-    # MODE MANUEL
-    st.info("✍️ Mode Saisie Manuelle")
-    
-    if 'q_manual' not in st.session_state:
-        st.session_state['q_manual'] = 0.87
-    
-    q_input = st.number_input(
-        "Taux de dividende (q) %",
-        min_value=0.0,
-        max_value=10.0,
-        value=st.session_state['q_manual'],
-        step=0.01
-    )
-    
-    st.session_state['q_manual'] = q_input
-    st.session_state['q_calculated'] = q_input / 100
-    
-    st.metric("Taux de Dividende (q)", f"{q_input:.2f}%")
-
-# Récupération de q
-q_final = st.session_state.get('q_calculated', 0.0087)
-
-st.divider()
-mode_text = "🔄 Automatique" if q_mode_auto else "✍️ Manuel"
-st.caption(f"Mode: {mode_text} | q = {q_final*100:.4f}%")
     # ─────────────────────────────────────────────────────────────────────────
     # MISSION 3: ALERTES & VALIDATION
     # ─────────────────────────────────────────────────────────────────────────
@@ -484,7 +434,6 @@ st.caption(f"Mode: {mode_text} | q = {q_final*100:.4f}%")
         mape = res['mape']
         erreur_max = max(abs(res['erreurs_pct']))
         
-        # Système d'alertes
         if mape < 0.5:
             st.markdown("""
                 <div class='risk-card alert-success'>
@@ -501,7 +450,6 @@ st.caption(f"Mode: {mode_text} | q = {q_final*100:.4f}%")
                     <h4 style='margin: 0; color: #92400e;'>⚠️ MODÈLE ACCEPTABLE</h4>
                     <p style='margin: 10px 0 0 0;'>
                         Erreur moyenne entre 0.5% et 1.5% — Le modèle est utilisable avec surveillance.
-                        <br><strong>Vérifier les paramètres (r-q) si l'erreur augmente.</strong>
                     </p>
                 </div>
             """, unsafe_allow_html=True)
@@ -511,15 +459,11 @@ st.caption(f"Mode: {mode_text} | q = {q_final*100:.4f}%")
                     <h4 style='margin: 0; color: #991b1b;'>🚨 ALERTE — MODÈLE À RECALIBRER</h4>
                     <p style='margin: 10px 0 0 0;'>
                         Erreur moyenne > 1.5% — Problème détecté dans le calcul.
-                        <br><strong>Causes possibles :</strong>
-                        <br>• Taux r mal scrapé ou obsolète
-                        <br>• Taux q (dividendes) incorrect
-                        <br>• Problème dans (r-q)
+                        <br><strong>Causes possibles :</strong> r mal scrapé ou q incorrect
                     </p>
                 </div>
             """, unsafe_allow_html=True)
         
-        # Statistiques complémentaires
         col1, col2 = st.columns(2)
         with col1:
             st.metric("Erreur Maximale", f"{erreur_max:.3f}%")
@@ -547,27 +491,10 @@ with tab_pricing:
             | **1. Calcul F₀** | Pricing avec données de l'onglet 1 | F₀ + Sensibilités + Base |
             | **2. Suivi Temporel** | Évolution jour par jour jusqu'échéance | Graphique + Tableau |
             | **3. Alertes Arbitrage** | Détection opportunités (bonus) | Signal d'achat/vente |
-            
-            ### 📊 Résultats Affichés
-            
-            - **F₀** : Prix théorique du future
-            - **Sensibilité taux** : Impact de ±1% sur r
-            - **Base F₀-S₀** : Écart future/spot (Contango/Backwardation)
-            - **Sensibilité temps** : Impact de la maturité
-            - **r, q** : Taux utilisés pour le calcul
-            
-            ### 💡 Principe d'Arbitrage
-            
-            | Situation | Signal | Stratégie |
-            |-----------|--------|-----------|
-            | Prix Marché > F₀ | Surévalué | Vendre Future + Acheter Spot |
-            | Prix Marché < F₀ | Sous-évalué | Acheter Future + Vendre Spot |
-            | Prix Marché ≈ F₀ | Équilibre | Aucune opportunité |
         """)
     
     st.divider()
     
-    # Vérifier validation
     if not st.session_state.get('donnees_valides', False):
         st.warning("⚠️ Veuillez d'abord valider les données dans l'onglet 1.")
         st.stop()
@@ -597,25 +524,20 @@ with tab_pricing:
             step=30
         )
     
-    # Récupérer r et q
     date_calcul = st.session_state['date_reference']
     date_echeance = date_calcul + timedelta(days=jours_echeance)
     r = get_taux_zc(date_calcul, date_echeance, st.session_state['df_taux'])
-    constituents_list = st.session_state['df_div'].to_dict('records')
-    q, _ = calculer_taux_dividende_indice(constituents_list)
+    q = st.session_state.get('q_calculated', 0.0087)
     
-    # Calculs
     t = jours_echeance / 360
     F0 = calculer_prix_theorique_future_bam(spot, r, q, t)
     base = calculer_base_future(F0, spot)
     cout_portage = calculer_cout_portage(r, q, t)
     
-    # Sensibilités
-    delta_r = F0 * t  # Sensibilité à r
-    delta_q = -F0 * t  # Sensibilité à q
-    delta_t = F0 * (r - q)  # Sensibilité au temps
+    delta_r = F0 * t
+    delta_q = -F0 * t
+    delta_t = F0 * (r - q)
     
-    # Affichage des résultats
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -651,7 +573,6 @@ with tab_pricing:
             </div>
         """, unsafe_allow_html=True)
     
-    # Paramètres et sensibilités
     col1, col2 = st.columns(2)
     
     with col1:
@@ -675,7 +596,6 @@ with tab_pricing:
     st.markdown("### 📈 Mission 2 — Suivi jusqu'à l'Échéance")
     
     if st.button("🚀 Lancer le Suivi Temporel", type="primary"):
-        # Calcul jour par jour
         dates_suivi = []
         current_date = date_calcul
         while current_date <= date_echeance:
@@ -709,7 +629,6 @@ with tab_pricing:
         df_suivi = pd.DataFrame(resultats_suivi)
         st.session_state['df_suivi'] = df_suivi
         
-        # Graphique de suivi
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=df_suivi['date'],
@@ -724,7 +643,7 @@ with tab_pricing:
             line=dict(color='#10B981', width=2, dash='dash')
         ))
         fig.update_layout(
-            title='Suivi Temporel — Évolution jusqu\'à l\'Échéance',
+            title="Suivi Temporel — Évolution jusqu'à l'Échéance",
             xaxis_title='Date',
             yaxis_title='Prix (points)',
             height=400,
@@ -732,7 +651,6 @@ with tab_pricing:
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Tableau des valeurs
         with st.expander("📊 Tableau Détaillé des Valeurs"):
             st.dataframe(df_suivi, use_container_width=True)
     
@@ -767,8 +685,6 @@ with tab_pricing:
                     <p style='margin: 10px 0 0 0;'>
                         <strong>Signal :</strong> Future Surévalué (+{ecart_pct:.2f}%)
                         <br><strong>Stratégie :</strong> Vendre Future + Acheter Spot
-                        <br><strong>Principe :</strong> Le prix de marché ({prix_marche:,.2f}) est supérieur 
-                        au prix théorique ({F0:,.2f}). Profit sans risque en vendant cher et achetant bon marché.
                     </p>
                 </div>
             """, unsafe_allow_html=True)
@@ -779,8 +695,6 @@ with tab_pricing:
                     <p style='margin: 10px 0 0 0;'>
                         <strong>Signal :</strong> Future Sous-évalué ({ecart_pct:.2f}%)
                         <br><strong>Stratégie :</strong> Acheter Future + Vendre Spot
-                        <br><strong>Principe :</strong> Le prix de marché ({prix_marche:,.2f}) est inférieur 
-                        au prix théorique ({F0:,.2f}). Profit sans risque en achetant bon marché et vendant cher.
                     </p>
                 </div>
             """, unsafe_allow_html=True)
