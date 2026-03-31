@@ -1,6 +1,6 @@
 # =============================================================================
 # PAGE 4: CONSTRUCTION & COUVERTURE DE PORTEFEUILLE — MASI Futures Pro
-# Version 1.0
+# Version 2.0
 # Développeurs: OULMADANI Ilyas & ATANANE Oussama
 # =============================================================================
 
@@ -9,463 +9,543 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-from datetime import datetime, timedelta
+from datetime import datetime
 
 st.set_page_config(page_title="Portfolio & Couverture", page_icon="🛡️", layout="wide")
 
 # =============================================================================
-# CSS PERSONNALISÉ
+# CSS
 # =============================================================================
 st.markdown("""
     <style>
-    .portfolio-card {
-        padding: 20px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        margin: 10px 0;
+    .result-box {
+        padding: 28px;
+        background: linear-gradient(135deg, #1E3A5F, #2E5C8A);
+        border-radius: 14px;
+        text-align: center;
+        color: white;
     }
-    .weight-slider {
-        margin: 10px 0;
+    .result-box .label { font-size: 0.85em; opacity: 0.8; margin-bottom: 6px; }
+    .result-box .value { font-size: 3em; font-weight: 700; line-height: 1; }
+    .result-box .sub   { font-size: 0.8em; opacity: 0.65; margin-top: 6px; }
+
+    .formula-card {
+        background: #f0f4ff;
+        border-left: 4px solid #2E5C8A;
+        border-radius: 10px;
+        padding: 18px 22px;
+        margin-bottom: 18px;
+    }
+    .formula-card .formula {
+        font-size: 1.4em;
+        font-weight: 600;
+        color: #1E3A5F;
+        margin: 6px 0 4px;
+        font-family: monospace;
+    }
+    .formula-card .legend {
+        font-size: 0.82em;
+        color: #444;
+        margin-top: 4px;
+    }
+
+    .prot-bar-wrap {
+        background: #e8f5e9;
+        border-radius: 8px;
+        height: 12px;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+    .prot-bar {
+        height: 12px;
+        border-radius: 8px;
+        background: linear-gradient(90deg, #10B981, #34D399);
+        transition: width 0.4s ease;
     }
     </style>
 """, unsafe_allow_html=True)
 
 # =============================================================================
+# DONNÉES DE RÉFÉRENCE — MASI20
+# =============================================================================
+MASI20_STOCKS = {
+    "ATW":  {"nom": "Attijariwafa Bank",          "secteur": "Banques",       "prix": 485.00},
+    "BCP":  {"nom": "Banque Centrale Populaire",  "secteur": "Banques",       "prix": 142.50},
+    "IAM":  {"nom": "Maroc Telecom",              "secteur": "Télécom",       "prix": 128.00},
+    "OCP":  {"nom": "OCP Group",                  "secteur": "Mines",         "prix": 185.00},
+    "CIH":  {"nom": "CIH Bank",                   "secteur": "Banques",       "prix": 245.00},
+    "CFG":  {"nom": "CFG Bank",                   "secteur": "Banques",       "prix": 165.00},
+    "BMCE": {"nom": "Bank of Africa",             "secteur": "Banques",       "prix": 198.00},
+    "WAA":  {"nom": "Wafa Assurance",             "secteur": "Assurances",    "prix": 3600.00},
+    "CMT":  {"nom": "Ciments du Maroc",           "secteur": "Matériaux",     "prix": 1490.00},
+    "HOL":  {"nom": "Holcim Maroc",               "secteur": "Matériaux",     "prix": 410.00},
+    "LHM":  {"nom": "LafargeHolcim Maroc",        "secteur": "Matériaux",     "prix": 1650.00},
+    "MNG":  {"nom": "Managem",                    "secteur": "Mines",         "prix": 1880.00},
+    "MSA":  {"nom": "BMCI",                       "secteur": "Banques",       "prix": 620.00},
+    "ADH":  {"nom": "Addoha",                     "secteur": "Immobilier",    "prix": 15.80},
+    "ALM":  {"nom": "Aluminium du Maroc",         "secteur": "Industrie",     "prix": 1340.00},
+    "BOA":  {"nom": "BOA Maroc",                  "secteur": "Banques",       "prix": 175.00},
+    "RDS":  {"nom": "Résidences Dar Saada",       "secteur": "Immobilier",    "prix": 55.00},
+    "TMA":  {"nom": "Total Maroc",                "secteur": "Énergie",       "prix": 990.00},
+    "SNP":  {"nom": "Sonasid",                    "secteur": "Industrie",     "prix": 590.00},
+    "CSR":  {"nom": "Cosumar",                    "secteur": "Agroalimentaire","prix": 310.00},
+}
+
+SECTEUR_COLORS = {
+    "Banques":        "#2563EB",
+    "Télécom":        "#7C3AED",
+    "Mines":          "#D97706",
+    "Assurances":     "#059669",
+    "Matériaux":      "#DC2626",
+    "Immobilier":     "#DB2777",
+    "Industrie":      "#0891B2",
+    "Énergie":        "#65A30D",
+    "Agroalimentaire":"#EA580C",
+}
+
+# =============================================================================
+# SESSION STATE
+# =============================================================================
+if "portfolio" not in st.session_state:
+    st.session_state["portfolio"] = []   # liste de dicts {ticker, poids}
+
+# =============================================================================
 # EN-TÊTE
 # =============================================================================
 st.title("🛡️ Construction & Couverture de Portefeuille")
-st.caption("Gestion professionnelle de portefeuille et calcul de couverture optimale")
+st.caption("MASI Futures Pro — Gestion professionnelle et calcul de couverture optimale N*")
 
-# =============================================================================
-# INITIALISATION SESSION STATE
-# =============================================================================
-if 'portfolio_df' not in st.session_state:
-    # Portfolio par défaut (MASI20)
-    st.session_state['portfolio_df'] = pd.DataFrame({
-        'ticker': ['ATW', 'BCP', 'IAM', 'OCP', 'CIH', 'CFG'],
-        'nom': ['Attijariwafa Bank', 'Banque Populaire', 'Maroc Telecom', 
-                'OCP Group', 'CIH Bank', 'CFG Bank'],
-        'quantité': [1000, 5000, 2000, 100, 2000, 3000],
-        'prix': [485.0, 142.5, 128.0, 7850.0, 245.0, 165.0],
-        'secteur': ['Banque', 'Banque', 'Télécom', 'Mines', 'Banque', 'Banque']
-    })
-
-if 'mode_construction' not in st.session_state:
-    st.session_state['mode_construction'] = False
-
-# =============================================================================
-# ONGLETS PRINCIPAUX
-# =============================================================================
-tab_builder, tab_coverage, tab_analytics = st.tabs([
-    "🎨 1. Construction du Portefeuille",
-    "🛡️ 2. Couverture (N*)",
-    "📊 3. Analytics"
+tab_builder, tab_coverage = st.tabs([
+    "🎨  Construction du Portefeuille",
+    "🛡️  Couverture Optimale (N*)",
 ])
 
 # =============================================================================
-# ONGLET 1: CONSTRUCTION DU PORTEFEUILLE
+# ONGLET 1 — CONSTRUCTION DU PORTEFEUILLE
 # =============================================================================
 with tab_builder:
-    st.markdown("### 🎯 Mode de Saisie")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        mode_import = st.radio(
-            "Choisissez un mode :",
-            ["📥 Import CSV", "🎨 Construction Interactive"],
-            index=1 if st.session_state['mode_construction'] else 0
-        )
-    
-    st.session_state['mode_construction'] = (mode_import == "🎨 Construction Interactive")
-    
-    st.divider()
-    
-    # ─────────────────────────────────────────────────────────────────────
-    # MODE 1: IMPORT CSV
-    # ─────────────────────────────────────────────────────────────────────
-    if not st.session_state['mode_construction']:
-        st.markdown("### 📥 Import d'un Portefeuille (CSV)")
-        
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            uploaded_pf = st.file_uploader(
-                "Importer votre fichier CSV",
-                type=['csv'],
-                help="Format: ticker, quantité, prix, secteur"
-            )
-        
-        with col2:
-            if st.button("📄 Télécharger Template"):
-                template = pd.DataFrame({
-                    'ticker': ['ATW', 'BCP', 'IAM'],
-                    'quantité': [1000, 5000, 2000],
-                    'prix': [485.0, 142.5, 128.0],
-                    'secteur': ['Banque', 'Banque', 'Télécom']
-                })
-                csv = template.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📥 Template CSV",
-                    data=csv,
-                    file_name="template_portefeuille.csv",
-                    mime="text/csv"
-                )
-        
-        if uploaded_pf:
-            try:
-                df_import = pd.read_csv(uploaded_pf)
-                # Validation des colonnes
-                required_cols = ['ticker', 'quantité', 'prix']
-                if all(col in df_import.columns for col in required_cols):
-                    st.session_state['portfolio_df'] = df_import
-                    st.success(f"✅ Portefeuille importé avec succès ({len(df_import)} lignes)")
-                else:
-                    st.error(f"❌ Colonnes manquantes. Requises: {required_cols}")
-            except Exception as e:
-                st.error(f"❌ Erreur de lecture: {e}")
-        else:
-            st.info("💡 Utilisez le bouton ci-dessus pour importer votre portefeuille")
-    
-    # ─────────────────────────────────────────────────────────────────────
-    # MODE 2: CONSTRUCTION INTERACTIVE
-    # ─────────────────────────────────────────────────────────────────────
+
+    # ── Sélecteur d'action ──────────────────────────────────────────────────
+    st.markdown("### ➕ Ajouter une action au portefeuille")
+
+    already_in = [row["ticker"] for row in st.session_state["portfolio"]]
+    available  = {k: v for k, v in MASI20_STOCKS.items() if k not in already_in}
+
+    if not available:
+        st.success("✅ Toutes les actions du MASI20 ont été ajoutées au portefeuille.")
     else:
-        st.markdown("### 🎨 Construction Interactive du Portefeuille")
-        
-        df_pf = st.session_state['portfolio_df']
-        
-        # Ajouter une ligne
-        col1, col2 = st.columns([4, 1])
-        with col2:
-            if st.button("➕ Ajouter une ligne", use_container_width=True):
-                new_row = pd.DataFrame({
-                    'ticker': ['NEW'],
-                    'nom': ['Nouvelle Action'],
-                    'quantité': [100],
-                    'prix': [100.0],
-                    'secteur': ['Autre']
+        col_sel, col_poids, col_btn = st.columns([3, 1.5, 1])
+
+        with col_sel:
+            options_display = {
+                f"{ticker} — {info['nom']} ({info['secteur']})": ticker
+                for ticker, info in available.items()
+            }
+            choix_label = st.selectbox(
+                "Action MASI20",
+                list(options_display.keys()),
+                label_visibility="collapsed",
+                placeholder="Choisir une action…"
+            )
+            ticker_choisi = options_display[choix_label]
+
+        with col_poids:
+            poids_initial = round(100 / (len(st.session_state["portfolio"]) + 1), 1)
+            poids_input = st.number_input(
+                "Pondération (%)",
+                min_value=0.1,
+                max_value=100.0,
+                value=float(poids_initial),
+                step=0.1,
+                label_visibility="collapsed"
+            )
+
+        with col_btn:
+            if st.button("➕ Ajouter", use_container_width=True, type="primary"):
+                st.session_state["portfolio"].append({
+                    "ticker": ticker_choisi,
+                    "poids":  poids_input
                 })
-                df_pf = pd.concat([df_pf, new_row], ignore_index=True)
-                st.session_state['portfolio_df'] = df_pf
                 st.rerun()
-        
-        st.divider()
-        
-        # Tableau éditable
-        st.markdown("### 📋 Composition du Portefeuille")
-        
-        # Calcul des valeurs
-        df_pf['valeur'] = df_pf['quantité'] * df_pf['prix']
-        total_valeur = df_pf['valeur'].sum()
-        df_pf['poids'] = (df_pf['valeur'] / total_valeur * 100) if total_valeur > 0 else 0
-        
-        # Affichage éditable ligne par ligne
-        for idx in range(len(df_pf)):
-            with st.container():
-                col_ticker, col_nom, col_qty, col_price, col_sector, col_value, col_weight, col_action = st.columns([1.5, 2, 1, 1, 1.5, 1.5, 1.5, 0.5])
-                
-                with col_ticker:
-                    df_pf.loc[idx, 'ticker'] = st.text_input(
-                        "Ticker",
-                        value=df_pf.loc[idx, 'ticker'],
-                        key=f"ticker_{idx}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col_nom:
-                    df_pf.loc[idx, 'nom'] = st.text_input(
-                        "Nom",
-                        value=df_pf.loc[idx, 'nom'],
-                        key=f"nom_{idx}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col_qty:
-                    df_pf.loc[idx, 'quantité'] = st.number_input(
-                        "Quantité",
-                        min_value=0,
-                        value=int(df_pf.loc[idx, 'quantité']),
-                        key=f"qty_{idx}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col_price:
-                    df_pf.loc[idx, 'prix'] = st.number_input(
-                        "Prix",
-                        min_value=0.0,
-                        value=float(df_pf.loc[idx, 'prix']),
-                        step=0.01,
-                        key=f"price_{idx}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col_sector:
-                    df_pf.loc[idx, 'secteur'] = st.selectbox(
-                        "Secteur",
-                        ['Banque', 'Télécom', 'Mines', 'Immobilier', 'Distribution', 'Autre'],
-                        index=['Banque', 'Télécom', 'Mines', 'Immobilier', 'Distribution', 'Autre'].index(df_pf.loc[idx, 'secteur']) if df_pf.loc[idx, 'secteur'] in ['Banque', 'Télécom', 'Mines', 'Immobilier', 'Distribution', 'Autre'] else 5,
-                        key=f"sector_{idx}",
-                        label_visibility="collapsed"
-                    )
-                
-                # Calcul automatique
-                valeur_ligne = df_pf.loc[idx, 'quantité'] * df_pf.loc[idx, 'prix']
-                poids_ligne = (valeur_ligne / total_valeur * 100) if total_valeur > 0 else 0
-                
-                with col_value:
-                    st.text(f"{valeur_ligne:,.0f} MAD")
-                
-                with col_weight:
-                    st.text(f"{poids_ligne:.1f}%")
-                
-                with col_action:
-                    if st.button("🗑️", key=f"del_{idx}"):
-                        df_pf = df_pf.drop(idx).reset_index(drop=True)
-                        st.session_state['portfolio_df'] = df_pf
-                        st.rerun()
-                
-                st.markdown("---")
-        
-        # Sauvegarder
-        st.session_state['portfolio_df'] = df_pf
-    
+
     st.divider()
-    
-    # ─────────────────────────────────────────────────────────────────────
-    # RÉCAPITULATIF DU PORTEFEUILLE
-    # ─────────────────────────────────────────────────────────────────────
-    st.markdown("### 📊 Récapitulatif du Portefeuille")
-    
-    df_pf = st.session_state['portfolio_df']
-    df_pf['valeur'] = df_pf['quantité'] * df_pf['prix']
-    total_valeur = df_pf['valeur'].sum()
-    df_pf['poids'] = (df_pf['valeur'] / total_valeur * 100) if total_valeur > 0 else 0
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("💰 Valeur Totale", f"{total_valeur:,.0f} MAD")
-    with col2:
-        st.metric("📦 Nombre de Lignes", len(df_pf))
-    with col3:
-        st.metric("🏦 Secteurs", df_pf['secteur'].nunique())
-    with col4:
-        avg_weight = df_pf['poids'].mean()
-        st.metric("⚖️ Poids Moyen", f"{avg_weight:.1f}%")
-    
-    # Tableau récapitulatif
-    st.dataframe(
-        df_pf[['ticker', 'nom', 'quantité', 'prix', 'valeur', 'poids', 'secteur']].round(2),
-        use_container_width=True
-    )
-    
-    # Visualisation
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        fig_pie = px.pie(
-            df_pf,
-            values='poids',
-            names='ticker',
-            title='🥧 Allocation par Action'
+
+    # ── Portefeuille courant ─────────────────────────────────────────────────
+    if not st.session_state["portfolio"]:
+        st.info("💡 Sélectionnez une action ci-dessus pour commencer à construire votre portefeuille.")
+    else:
+        pf = st.session_state["portfolio"]
+        total_poids = sum(r["poids"] for r in pf)
+
+        # Alerte somme des poids
+        if abs(total_poids - 100) > 0.01:
+            delta = round(100 - total_poids, 2)
+            signe = "+" if delta > 0 else ""
+            st.error(
+                f"⚠️ La somme des pondérations est **{total_poids:.2f}%** "
+                f"({signe}{delta}%). Corrigez avant de passer à la couverture."
+            )
+        else:
+            st.success("✅ La somme des pondérations est bien égale à 100%.")
+
+        # ── Métriques ──────────────────────────────────────────────────────
+        total_valeur_ref = sum(
+            MASI20_STOCKS[r["ticker"]]["prix"] * (r["poids"] / 100) * 1000
+            for r in pf
         )
-        st.plotly_chart(fig_pie, use_container_width=True)
-    
-    with col2:
-        df_sector = df_pf.groupby('secteur')['poids'].sum().reset_index()
-        fig_bar = px.bar(
-            df_sector,
-            x='secteur',
-            y='poids',
-            title='📊 Allocation par Secteur',
-            color='poids',
-            color_continuous_scale='Blues'
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        nb_secteurs = len({MASI20_STOCKS[r["ticker"]]["secteur"] for r in pf})
+
+        mc1, mc2, mc3, mc4 = st.columns(4)
+        mc1.metric("📦 Nombre de lignes",      len(pf))
+        mc2.metric("🏦 Secteurs représentés",  nb_secteurs)
+        mc3.metric("⚖️ Somme des poids",       f"{total_poids:.2f}%")
+        mc4.metric("⚡ Poids moyen",            f"{(total_poids/len(pf)):.1f}%")
+
+        st.divider()
+
+        # ── Tableau éditable ───────────────────────────────────────────────
+        st.markdown("### 📋 Composition & ajustement des pondérations")
+
+        header = st.columns([1, 2, 1.5, 1.2, 1.2, 1.2, 1.2, 0.6])
+        for h, label in zip(header, ["Ticker","Nom","Secteur","Prix (MAD)","Poids (%)","Valeur (MAD*)","Barre","❌"]):
+            h.markdown(f"<small style='color:grey'>{label}</small>", unsafe_allow_html=True)
+
+        to_delete = None
+        new_weights = []
+
+        for i, row in enumerate(pf):
+            info    = MASI20_STOCKS[row["ticker"]]
+            valeur  = info["prix"] * (row["poids"] / 100) * 1000
+
+            c1,c2,c3,c4,c5,c6,c7,c8 = st.columns([1, 2, 1.5, 1.2, 1.2, 1.2, 1.2, 0.6])
+            c1.markdown(f"**{row['ticker']}**")
+            c2.write(info["nom"])
+            c3.write(info["secteur"])
+            c4.write(f"{info['prix']:,.2f}")
+
+            new_w = c5.number_input(
+                "poids", min_value=0.1, max_value=100.0,
+                value=float(row["poids"]), step=0.1,
+                key=f"w_{i}", label_visibility="collapsed"
+            )
+            new_weights.append(new_w)
+
+            c6.write(f"{valeur:,.0f}")
+
+            pct = min(row["poids"], 100)
+            c7.markdown(
+                f"<div style='background:#e5e7eb;border-radius:99px;height:8px;margin-top:14px'>"
+                f"<div style='width:{pct}%;background:#2563EB;height:8px;border-radius:99px'></div></div>",
+                unsafe_allow_html=True
+            )
+
+            if c8.button("🗑️", key=f"del_{i}"):
+                to_delete = i
+
+        # Appliquer suppressions / mises à jour
+        if to_delete is not None:
+            st.session_state["portfolio"].pop(to_delete)
+            st.rerun()
+
+        for i, w in enumerate(new_weights):
+            st.session_state["portfolio"][i]["poids"] = w
+
+        st.caption("*Valeur calculée à titre indicatif sur une base de 1 000 unités par action.")
+
+        # Boutons d'action rapide
+        col_eq, col_reset, _ = st.columns([1.5, 1.5, 5])
+        with col_eq:
+            if st.button("⚖️ Égaliser les poids", use_container_width=True):
+                equal = round(100 / len(pf), 2)
+                for row in st.session_state["portfolio"]:
+                    row["poids"] = equal
+                # ajuster le dernier pour arriver pile à 100
+                diff = round(100 - equal * len(pf), 2)
+                st.session_state["portfolio"][-1]["poids"] = round(equal + diff, 2)
+                st.rerun()
+        with col_reset:
+            if st.button("🗑️ Vider le portefeuille", use_container_width=True):
+                st.session_state["portfolio"] = []
+                st.rerun()
+
+        st.divider()
+
+        # ── Visualisations ─────────────────────────────────────────────────
+        st.markdown("### 📊 Analyse graphique")
+        vc1, vc2 = st.columns(2)
+
+        # Camembert par action
+        with vc1:
+            labels = [r["ticker"] for r in pf]
+            vals   = [r["poids"]  for r in pf]
+            colors = [SECTEUR_COLORS.get(MASI20_STOCKS[r["ticker"]]["secteur"], "#888") for r in pf]
+            fig_pie = go.Figure(go.Pie(
+                labels=labels, values=vals,
+                hole=0.45,
+                marker=dict(colors=colors),
+                textinfo="label+percent",
+                hovertemplate="<b>%{label}</b><br>Poids : %{value:.1f}%<extra></extra>"
+            ))
+            fig_pie.update_layout(
+                title="Allocation par action",
+                showlegend=False,
+                margin=dict(t=40, b=10, l=10, r=10),
+                height=320
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+        # Barres par secteur
+        with vc2:
+            df_sec = pd.DataFrame([
+                {
+                    "Secteur": MASI20_STOCKS[r["ticker"]]["secteur"],
+                    "Poids":   r["poids"]
+                }
+                for r in pf
+            ]).groupby("Secteur", as_index=False)["Poids"].sum().sort_values("Poids", ascending=False)
+
+            fig_bar = go.Figure(go.Bar(
+                x=df_sec["Secteur"], y=df_sec["Poids"],
+                marker_color=[SECTEUR_COLORS.get(s, "#888") for s in df_sec["Secteur"]],
+                text=df_sec["Poids"].round(1).astype(str) + "%",
+                textposition="outside",
+                hovertemplate="<b>%{x}</b><br>%{y:.1f}%<extra></extra>"
+            ))
+            fig_bar.update_layout(
+                title="Allocation sectorielle",
+                yaxis_title="Poids (%)",
+                xaxis_tickangle=-30,
+                margin=dict(t=40, b=40, l=10, r=10),
+                height=320,
+                showlegend=False
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
 
 # =============================================================================
-# ONGLET 2: COUVERTURE (N*)
+# ONGLET 2 — COUVERTURE OPTIMALE (N*)
 # =============================================================================
 with tab_coverage:
-    st.markdown("### 🛡️ Calcul de la Couverture Optimale (N*)")
-    
-    df_pf = st.session_state['portfolio_df']
-    total_valeur = df_pf['valeur'].sum()
-    
-    # Paramètres
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        prix_future = st.number_input(
-            "Prix Future MASI20",
-            min_value=1000.0,
-            value=1876.54,
-            step=10.0
-        )
-    
-    with col2:
-        multiplicateur = st.number_input(
-            "Multiplicateur (MAD/point)",
-            value=10,
-            disabled=True
-        )
-    
-    with col3:
-        beta_pf = st.number_input(
-            "Beta du Portefeuille (β)",
-            min_value=0.0,
-            max_value=2.0,
-            value=0.98,
-            step=0.01
-        )
-    
-    st.divider()
-    
-    # Calcul N*
-    if st.button("🧮 Calculer N*", type="primary", use_container_width=True):
-        valeur_contrat = prix_future * multiplicateur
-        N_star = round(beta_pf * total_valeur / valeur_contrat)
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.markdown(f"""
-                <div style='padding:25px; background:linear-gradient(135deg,#1E3A5F,#2E5C8A);
-                            border-radius:12px; text-align:center; color:white;'>
-                    <p style='margin:0; font-size:0.9em;'>🎯 Contrats à Vendre</p>
-                    <p style='margin:10px 0 0 0; font-size:2.5em; font-weight:700;'>{N_star:,}</p>
-                    <p style='margin:5px 0 0 0; font-size:0.85em;'>contrats MASI20</p>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.metric("Valeur d'un Contrat", f"{valeur_contrat:,.0f} MAD")
-        
-        with col3:
-            notionnel_couvert = N_star * valeur_contrat
-            st.metric("Notionnel Couvert", f"{notionnel_couvert:,.0f} MAD")
-        
-        with col4:
-            ratio_couverture = (notionnel_couvert / total_valeur * 100) if total_valeur > 0 else 0
-            st.metric("Taux de Couverture", f"{ratio_couverture:.1f}%")
-        
-        st.info(f"""
-            **Formule :** N* = β × P / A = {beta_pf:.2f} × {total_valeur:,.0f} / {valeur_contrat:,.0f} = **{N_star:,} contrats**
-        """)
-        
-        st.divider()
-        
-        # Simulation
-        st.markdown("### 🧪 Simulation d'Impact")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            scenario = st.slider(
-                "Variation du MASI20 (%)",
-                min_value=-20.0,
-                max_value=20.0,
-                value=-5.0,
-                step=1.0
+
+    # ── Rappel de la formule ────────────────────────────────────────────────
+    st.markdown("""
+    <div class="formula-card">
+        <div style="font-size:0.82em;color:#555;margin-bottom:2px">
+            Formule de couverture optimale (Hull, Options, Futures and Other Derivatives) :
+        </div>
+        <div class="formula">N* = β × P / A</div>
+        <div class="legend">
+            <b>P</b> = Valeur du portefeuille à couvrir (MAD) &nbsp;|&nbsp;
+            <b>A</b> = Valeur notionnelle d'un contrat future = Prix future × Multiplicateur &nbsp;|&nbsp;
+            <b>β</b> = Bêta du portefeuille par rapport au MASI20
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### ⚙️ Paramètres")
+
+    # ── Synchronisation depuis l'onglet 1 ──────────────────────────────────
+    pf_valeur_sync = 0.0
+    if st.session_state["portfolio"]:
+        poids_ok = abs(sum(r["poids"] for r in st.session_state["portfolio"]) - 100) < 0.01
+        if poids_ok:
+            pf_valeur_sync = sum(
+                MASI20_STOCKS[r["ticker"]]["prix"] * (r["poids"] / 100) * 1000
+                for r in st.session_state["portfolio"]
             )
-        
-        with col2:
-            impact_non_couvert = total_valeur * (scenario / 100) * beta_pf
-            impact_couvert = impact_non_couvert - (N_star * multiplicateur * prix_future * (scenario / 100))
-            protection = (1 - abs(impact_couvert) / abs(impact_non_couvert)) * 100 if impact_non_couvert != 0 else 100
-            
-            st.metric("Impact sans Couverture", f"{impact_non_couvert:,.0f} MAD")
-            st.metric("Impact avec Couverture", f"{impact_couvert:,.0f} MAD")
-        
-        # Barre de protection
+            st.info(
+                f"💼 Portefeuille détecté depuis l'onglet 1 — "
+                f"Valeur indicative : **{pf_valeur_sync:,.0f} MAD**. "
+                f"Vous pouvez l'utiliser ci-dessous ou saisir une valeur personnalisée."
+            )
+
+    pc1, pc2, pc3 = st.columns(3)
+
+    with pc1:
+        valeur_defaut = float(pf_valeur_sync) if pf_valeur_sync > 0 else 16_000_000.0
+        P = st.number_input(
+            "💰 Valeur du portefeuille P (MAD)",
+            min_value=0.0,
+            value=valeur_defaut,
+            step=100_000.0,
+            format="%.0f"
+        )
+
+    with pc2:
+        F = st.number_input(
+            "📈 Prix future MASI20 (points)",
+            min_value=100.0,
+            value=1_876.54,
+            step=1.0,
+            format="%.2f"
+        )
+
+    with pc3:
+        M = st.number_input(
+            "✖️ Multiplicateur (MAD/point)",
+            min_value=1,
+            value=10,
+            disabled=True,
+            help="Fixé à 10 MAD par point d'indice selon les spécifications du contrat MASI20."
+        )
+
+    beta = st.slider(
+        "📐 Bêta du portefeuille (β) par rapport au MASI20",
+        min_value=0.10,
+        max_value=2.50,
+        value=0.98,
+        step=0.01,
+        help=(
+            "β < 1 : portefeuille moins volatile que l'indice | "
+            "β = 1 : suit parfaitement l'indice | "
+            "β > 1 : portefeuille plus volatile que l'indice"
+        )
+    )
+
+    st.divider()
+
+    # ── Calcul N* ───────────────────────────────────────────────────────────
+    A      = F * M
+    N_star = round(beta * P / A) if A > 0 else 0
+    notionnel_couvert = N_star * A
+    taux_couverture   = (notionnel_couvert / P * 100) if P > 0 else 0
+
+    st.markdown("### 🎯 Résultat du calcul")
+
+    rc1, rc2, rc3, rc4 = st.columns(4)
+
+    with rc1:
         st.markdown(f"""
-            <div style='padding:20px; background:#ecfdf5; border-radius:12px; margin:15px 0;'>
-                <p style='margin:0; font-size:1.1em; font-weight:600; color:#065f46;'>
-                    🛡️ Protection du portefeuille : **{protection:.1f}%**
-                </p>
-                <div style='background:#d1fae5; border-radius:8px; height:12px; margin-top:10px; overflow:hidden;'>
-                    <div style='background:linear-gradient(90deg,#10B981,#34D399); width:{min(protection,100)}%; height:100%; border-radius:8px; transition:width 0.5s ease;'></div>
-                </div>
-                <p style='margin:10px 0 0 0; color:#065f46; font-size:0.9em;'>
-                    Perte évitée : **{abs(impact_non_couvert - impact_couvert):,.0f} MAD**
-                </p>
+            <div class="result-box">
+                <div class="label">Contrats à vendre (position courte)</div>
+                <div class="value">{N_star:,}</div>
+                <div class="sub">contrats MASI20 futures</div>
             </div>
         """, unsafe_allow_html=True)
 
-# =============================================================================
-# ONGLET 3: ANALYTICS
-# =============================================================================
-with tab_analytics:
-    st.markdown("### 📊 Analytics du Portefeuille")
-    
-    df_pf = st.session_state['portfolio_df']
-    
-    # Métriques avancées
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        # Concentration
-        top3_weight = df_pf.nlargest(3, 'poids')['poids'].sum()
-        st.metric("🎯 Concentration Top 3", f"{top3_weight:.1f}%")
-    
-    with col2:
-        # Diversification
-        nb_lignes = len(df_pf)
-        poids_ideal = 100 / nb_lignes if nb_lignes > 0 else 0
-        st.metric("📈 Poids Idéal (si égal)", f"{poids_ideal:.1f}%")
-    
-    with col3:
-        # Secteur dominant
-        df_sector = df_pf.groupby('secteur')['poids'].sum()
-        secteur_max = df_sector.idxmax() if len(df_sector) > 0 else "N/A"
-        poids_max = df_sector.max() if len(df_sector) > 0 else 0
-        st.metric(f"🏦 Secteur Dominant ({secteur_max})", f"{poids_max:.1f}%")
-    
+    with rc2:
+        st.metric("Valeur notionnelle A", f"{A:,.0f} MAD",
+                  help="A = Prix future × Multiplicateur")
+
+    with rc3:
+        st.metric("Notionnel couvert",    f"{notionnel_couvert:,.0f} MAD")
+
+    with rc4:
+        st.metric("Taux de couverture",   f"{taux_couverture:.1f}%")
+
+    st.markdown(f"""
+    > **Formule appliquée :**  
+    > N* = β × P / A = {beta:.2f} × {P:,.0f} / {A:,.0f} = **{N_star:,} contrats**
+    """)
+
     st.divider()
-    
-    # Graphique de concentration
-    st.markdown("### 📊 Concentration du Portefeuille")
-    
-    df_sorted = df_pf.nlargest(10, 'poids').sort_values('poids', ascending=True)
-    
-    fig = px.bar(
-        df_sorted,
-        x='poids',
-        y='ticker',
-        orientation='h',
-        title='📊 Top 10 Positions par Poids',
-        color='poids',
-        color_continuous_scale='Blues'
+
+    # ── Simulation d'impact ─────────────────────────────────────────────────
+    st.markdown("### 🧪 Simulation d'impact de marché")
+
+    sc1, sc2 = st.columns([2, 3])
+
+    with sc1:
+        variation = st.slider(
+            "Variation du MASI20 (%)",
+            min_value=-25.0,
+            max_value=25.0,
+            value=-10.0,
+            step=1.0
+        )
+
+    with sc2:
+        perte_pf        = P * (variation / 100) * beta
+        gain_futures    = N_star * M * F * (-variation / 100)
+        impact_net      = perte_pf + gain_futures
+        protection_pct  = (
+            min((abs(gain_futures) / abs(perte_pf)) * 100, 100)
+            if perte_pf != 0 else 100
+        )
+        val_finale_sans = P + perte_pf
+        val_finale_avec = P + impact_net
+
+        col_a, col_b, col_c = st.columns(3)
+        col_a.metric(
+            "Impact sans couverture",
+            f"{perte_pf:+,.0f} MAD",
+            delta_color="inverse"
+        )
+        col_b.metric(
+            "Gain sur futures",
+            f"{gain_futures:+,.0f} MAD",
+            delta_color="normal"
+        )
+        col_c.metric(
+            "Impact net (avec couverture)",
+            f"{impact_net:+,.0f} MAD",
+            delta_color="inverse"
+        )
+
+    # Barre de protection
+    prot_display = max(0, min(protection_pct, 100))
+    signe        = "baisse" if variation < 0 else "hausse"
+    st.markdown(f"""
+    <div style="background:#ecfdf5;border-radius:12px;padding:18px 22px;margin-top:12px">
+        <div style="font-weight:600;color:#065f46;font-size:1.05em">
+            🛡️ Protection du portefeuille : {prot_display:.1f}%
+            &nbsp;|&nbsp; Variation MASI20 : <b>{variation:+.0f}%</b> ({signe})
+        </div>
+        <div class="prot-bar-wrap">
+            <div class="prot-bar" style="width:{prot_display}%"></div>
+        </div>
+        <div style="margin-top:10px;color:#065f46;font-size:0.88em">
+            Valeur finale <b>sans</b> couverture : <b>{val_finale_sans:,.0f} MAD</b> &nbsp;|&nbsp;
+            Valeur finale <b>avec</b> couverture : <b>{val_finale_avec:,.0f} MAD</b> &nbsp;|&nbsp;
+            Perte évitée : <b>{abs(perte_pf - impact_net):,.0f} MAD</b>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # ── Graphique scénarios ─────────────────────────────────────────────────
+    st.markdown("### 📈 Comparaison selon les scénarios de marché")
+
+    scenarios = np.arange(-25, 26, 1)
+    pertes_sans = [P * (v / 100) * beta for v in scenarios]
+    pertes_avec = [
+        P * (v / 100) * beta + N_star * M * F * (-v / 100)
+        for v in scenarios
+    ]
+
+    fig_scen = go.Figure()
+    fig_scen.add_trace(go.Scatter(
+        x=scenarios, y=pertes_sans,
+        name="Sans couverture",
+        line=dict(color="#DC2626", width=2),
+        fill="tozeroy", fillcolor="rgba(220,38,38,0.08)"
+    ))
+    fig_scen.add_trace(go.Scatter(
+        x=scenarios, y=pertes_avec,
+        name="Avec couverture (N*)",
+        line=dict(color="#10B981", width=2),
+        fill="tozeroy", fillcolor="rgba(16,185,129,0.08)"
+    ))
+    fig_scen.add_vline(
+        x=variation, line_dash="dot",
+        line_color="#2E5C8A", line_width=1.5,
+        annotation_text=f"Scénario sélectionné : {variation:+.0f}%",
+        annotation_position="top right"
     )
-    fig.update_layout(height=400, yaxis_title='Action', xaxis_title='Poids (%)')
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Alertes
-    st.divider()
-    st.markdown("### ⚠️ Alertes de Concentration")
-    
-    alertes = []
-    
-    if top3_weight > 50:
-        alertes.append(f"⚠️ **Forte concentration** : Les 3 premières positions représentent {top3_weight:.1f}% du portefeuille")
-    
-    if poids_max > 30:
-        alertes.append(f"⚠️ **Secteur {secteur_max} dominant** : {poids_max:.1f}% du portefeuille")
-    
-    if nb_lignes < 10:
-        alertes.append(f"⚠️ **Portefeuille peu diversifié** : Seulement {nb_lignes} lignes")
-    
-    if len(alertes) == 0:
-        st.success("✅ **Portefeuille bien diversifié** - Aucune alerte majeure")
-    else:
-        for alerte in alertes:
-            st.warning(alerte)
+    fig_scen.add_hline(y=0, line_color="grey", line_width=0.8)
+    fig_scen.update_layout(
+        xaxis_title="Variation du MASI20 (%)",
+        yaxis_title="Impact sur le portefeuille (MAD)",
+        legend=dict(orientation="h", y=1.05),
+        margin=dict(t=30, b=40, l=10, r=10),
+        height=380,
+        hovermode="x unified"
+    )
+    st.plotly_chart(fig_scen, use_container_width=True)
 
 # =============================================================================
 # FOOTER
 # =============================================================================
 st.divider()
-st.caption(f"MASI Futures Pro v1.0 | Portfolio & Couverture | © {datetime.now().year}")
+st.caption(f"MASI Futures Pro v2.0 | Portfolio & Couverture | © {datetime.now().year}")
 st.caption("Développé par OULMADANI Ilyas & ATANANE Oussama")
